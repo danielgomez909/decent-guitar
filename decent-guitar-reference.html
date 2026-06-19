@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decent Guitar — Reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #faf7f2; --brown: #3d2b1f; --accent: #c0622a; --green: #4a6741;
+      --brown-light: #7a5c4a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--brown); line-height: 1.7; }
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+    h1 { font-family: 'Lora', serif; font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+    .subtitle { color: var(--brown-light); font-size: 0.95rem; margin-bottom: 40px; }
+    h2 { font-family: 'Lora', serif; font-size: 1.25rem; font-weight: 600; color: var(--brown); border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin: 36px 0 14px; }
+    h3 { font-family: 'Lora', serif; font-size: 1rem; font-weight: 600; color: var(--brown); margin: 18px 0 8px; }
+    p { margin-bottom: 10px; font-size: 0.92rem; }
+    code { font-family: 'DM Mono', monospace; background: #ede8df; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.88rem; }
+    th { background: var(--brown); color: var(--cream); padding: 8px 12px; text-align: left; font-weight: 500; }
+    td { padding: 8px 12px; border-bottom: 1px solid #e8e0d4; vertical-align: top; }
+    tr:nth-child(even) td { background: #f5f0e8; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; }
+    .pk { background: #f5e6dc; color: var(--accent); }
+    .fk { background: #e0ead8; color: var(--green); }
+    .tag-ux { background: #fde8dc; color: var(--accent); }
+    .tag-feature { background: #dff0db; color: var(--green); }
+    .tag-data { background: #dce8fa; color: #2a5a8a; }
+    .backlog-item { padding: 8px 12px; border-left: 3px solid var(--accent); background: #fff; margin-bottom: 8px; border-radius: 0 6px 6px 0; font-size: 0.88rem; }
+    .arch-box {
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 16px 0;
+      font-size: 0.85rem;
+    }
+    .arch-node {
+      background: #fff; border: 1.5px solid var(--brown-light); border-radius: 8px;
+      padding: 10px 16px; text-align: center; font-weight: 500;
+    }
+    .arch-node span { display: block; font-size: 0.72rem; color: var(--brown-light); font-weight: 400; }
+    .arch-arrow { color: var(--accent); font-size: 1.2rem; }
+    .version-entry { margin-bottom: 10px; font-size: 0.88rem; }
+    .version-date { font-weight: 600; color: var(--accent); margin-right: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎸 Decent Guitar</h1>
+  <p class="subtitle">Project Reference — last updated June 2026</p>
+
+  <h2>Overview</h2>
+  <p>Decent Guitar is a personal web app for supporting acoustic guitar learning. It provides a song library with chord-annotated scrolling lyrics (similar to Ultimate Guitar's chord view), a chord fingering library, strumming pattern reference, and a daily practice module (in progress).</p>
+
+  <h2>Architecture</h2>
+  <div class="arch-box">
+    <div class="arch-node">Browser<span>claude.ai / iPhone</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">Vercel<span>decent-guitar.vercel.app</span></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">Supabase<span>PostgreSQL REST API</span></div>
+  </div>
+  <div class="arch-box">
+    <div class="arch-node">GitHub<span>danielgomez909/decent-guitar</span></div>
+    <div class="arch-arrow">→ auto-deploy →</div>
+    <div class="arch-node">Vercel</div>
+  </div>
+
+  <h2>Service Accounts</h2>
+  <table>
+    <tr><th>Service</th><th>Detail</th></tr>
+    <tr><td>Supabase Project</td><td><code>ntrhptxetvdjhoqfaytl.supabase.co</code> (shared project with other Decent apps)</td></tr>
+    <tr><td>GitHub Repo</td><td><code>danielgomez909/decent-guitar</code></td></tr>
+    <tr><td>Vercel Project</td><td>TBD (not yet created)</td></tr>
+  </table>
+
+  <h2>Database Schema</h2>
+
+  <h3>parts</h3>
+  <p>Reference table. Shared part names reused across all songs. Seeded with standard values.</p>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td>Auto-incrementing integer</td></tr>
+    <tr><td>name</td><td>text</td><td>Unique. e.g. Intro, Verse, Chorus, Bridge, Pre-Chorus, Solo, Outro</td></tr>
+  </table>
+
+  <h3>strumming_patterns</h3>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td></td></tr>
+    <tr><td>notation</td><td>text</td><td>e.g. <code>D DU UDU</code></td></tr>
+    <tr><td>notes</td><td>text</td><td>Optional description</td></tr>
+  </table>
+
+  <h3>chords</h3>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td></td></tr>
+    <tr><td>name</td><td>text</td><td>Unique. e.g. Em, G, C</td></tr>
+    <tr><td>fingering</td><td>jsonb</td><td>Per-string: plucked (bool), finger (int|null), fret (int|null). Keys: e, a, d, g, b, high_e</td></tr>
+    <tr><td>notes</td><td>text</td><td>Optional. e.g. barre chord notes</td></tr>
+  </table>
+  <p>Example fingering JSON (Em):</p>
+  <code>{"e":{"plucked":true,"finger":null,"fret":null},"a":{"plucked":true,"finger":1,"fret":2},...}</code>
+
+  <h3>songs</h3>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>uuid</td><td>gen_random_uuid()</td></tr>
+    <tr><td>title</td><td>text</td><td></td></tr>
+    <tr><td>artist</td><td>text</td><td>Nullable</td></tr>
+    <tr><td>capo_fret</td><td>int</td><td>Nullable. 1–12</td></tr>
+    <tr><td>source_url</td><td>text</td><td>Nullable. e.g. Ultimate Guitar link</td></tr>
+    <tr><td>notes</td><td>text</td><td>Nullable</td></tr>
+    <tr><td><span class="badge fk">FK</span> default_strumming_pattern_id</td><td>int</td><td>Nullable. Points to strumming_patterns. Used when same pattern throughout.</td></tr>
+  </table>
+
+  <h3>song_parts_order</h3>
+  <p>Intermediate table. Assigns a song-specific ordering to part instances (e.g. Verse appears at position 2 and 4 in the same song). Unique constraint on (song_id, part_order).</p>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>uuid</td><td></td></tr>
+    <tr><td><span class="badge fk">FK</span> song_id</td><td>uuid</td><td>→ songs, cascade delete</td></tr>
+    <tr><td><span class="badge fk">FK</span> part_id</td><td>int</td><td>→ parts</td></tr>
+    <tr><td>part_order</td><td>int</td><td>1-based sequence within a song</td></tr>
+  </table>
+
+  <h3>song_part_strumming</h3>
+  <p>Overrides the song-level default strumming pattern for a specific part instance.</p>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge fk">FK</span> song_parts_order_id</td><td>uuid</td><td>Composite PK with strumming_pattern_id</td></tr>
+    <tr><td><span class="badge fk">FK</span> strumming_pattern_id</td><td>int</td><td>→ strumming_patterns</td></tr>
+  </table>
+
+  <h3>song_lyrics</h3>
+  <p>One row per lyric line. Chord changes are embedded inline using <code>[ChordName]</code> notation (e.g. <code>[Em]Never gonna [G]give you up</code>). Chord list for display is derived at query time by parsing these markers — no separate song_part_chords table needed.</p>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>uuid</td><td></td></tr>
+    <tr><td><span class="badge fk">FK</span> song_parts_order_id</td><td>uuid</td><td>→ song_parts_order, cascade delete</td></tr>
+    <tr><td>line_order</td><td>int</td><td>1-based sequence within a part. Unique with song_parts_order_id.</td></tr>
+    <tr><td>lyric_text</td><td>text</td><td>Raw lyric line with inline [Chord] markers</td></tr>
+  </table>
+
+  <h2>Deployment Workflow</h2>
+  <ol style="padding-left:20px;font-size:0.9rem;line-height:2">
+    <li>Download updated file(s) from Claude</li>
+    <li>Go to <code>github.com/danielgomez909/decent-guitar</code></li>
+    <li>Open the file → click pencil (edit) icon, paste new content</li>
+    <li>Commit changes — Vercel auto-deploys in ~30 seconds</li>
+    <li>Verify at the Vercel URL</li>
+  </ol>
+
+  <h2>Feature Backlog</h2>
+
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Practice tab — chord change cycling, pattern drilling, finger exercises, metronome/timing</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Visual chord diagram renderer (from fingering jsonb → SVG fretboard grid)</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song edit / delete in Admin</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord edit / delete in Admin</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Strumming pattern edit / delete in Admin</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Part-level strumming pattern display in song detail view</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> iOS home screen icon</div>
+  <div class="backlog-item"><span class="badge tag-data">Data</span> Supabase RLS + authentication</div>
+  <div class="backlog-item"><span class="badge tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
+
+  <h2>Version History</h2>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.0</span> Initial build. Schema designed and deployed. App built with Songs, Chords, Patterns, Practice (placeholder), and Admin tabs. Song detail view with inline chord markers and auto-scroll lyrics.</div>
+</div>
+</body>
+</html>

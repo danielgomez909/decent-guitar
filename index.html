@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decent Guitar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+  <style>
+    :root {
+      --cream: #faf7f2;
+      --cream-dark: #f0ebe0;
+      --brown: #3d2b1f;
+      --brown-light: #7a5c4a;
+      --accent: #c0622a;
+      --accent-light: #e8845a;
+      --green: #4a6741;
+      --green-light: #6a8f60;
+      --string-e:    #c0622a;
+      --string-a:    #a0522d;
+      --string-d:    #8b6914;
+      --string-g:    #4a6741;
+      --string-b:    #2a5a8a;
+      --string-he:   #7a3a8a;
+      --shadow: 0 2px 8px rgba(61,43,31,0.10);
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--brown); min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--brown);
+      color: var(--cream);
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 20px; height: 52px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar h1 { font-family: 'Lora', serif; font-size: 1.2rem; font-weight: 700; letter-spacing: .03em; }
+    .topbar .guitar-icon { font-size: 1.4rem; }
+    .info-btn {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1.5px solid var(--brown-light);
+      color: var(--brown-light); text-decoration: none;
+      font-size: 14px; display: flex; align-items: center; justify-content: center;
+      transition: all .15s; flex-shrink: 0; margin-left: auto;
+    }
+    .info-btn:hover { border-color: var(--accent-light); color: var(--accent-light); }
+
+    /* ── TABS ── */
+    .tab-bar {
+      background: var(--brown);
+      display: flex; border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 4px; border: none; background: none;
+      color: rgba(250,247,242,0.5); font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem; font-weight: 500; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: color .15s; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .tab-btn i { font-size: 1.2rem; }
+    .tab-btn.active { color: var(--accent-light); }
+    .tab-btn:hover { color: var(--cream); }
+
+    /* ── CONTENT ── */
+    .tab-content { display: none; padding: 16px; max-width: 700px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: #fff; border-radius: var(--radius);
+      box-shadow: var(--shadow); margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 16px; display: flex; align-items: center;
+      justify-content: space-between; cursor: pointer;
+    }
+    .card-header h3 { font-family: 'Lora', serif; font-size: 1rem; font-weight: 600; }
+    .card-body { padding: 0 16px 14px; }
+    .card-meta { font-size: 0.8rem; color: var(--brown-light); margin-top: 2px; }
+
+    /* ── SONG LIST ── */
+    .song-item {
+      background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: box-shadow .15s;
+    }
+    .song-item:hover { box-shadow: 0 4px 16px rgba(61,43,31,0.15); }
+    .song-item h3 { font-family: 'Lora', serif; font-size: 1rem; font-weight: 600; }
+    .song-item .artist { font-size: 0.82rem; color: var(--brown-light); margin-top: 2px; }
+    .song-item .capo-badge {
+      background: var(--cream-dark); color: var(--brown-light);
+      font-size: 0.72rem; padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── SONG DETAIL ── */
+    .song-detail { display: none; }
+    .song-detail.active { display: block; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; color: var(--accent); font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; font-weight: 500; cursor: pointer; padding: 0; margin-bottom: 14px;
+    }
+    .song-title-block { margin-bottom: 16px; }
+    .song-title-block h2 { font-family: 'Lora', serif; font-size: 1.5rem; font-weight: 700; }
+    .song-title-block .artist { font-size: 0.95rem; color: var(--brown-light); }
+    .song-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .badge {
+      font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: 500;
+    }
+    .badge-capo { background: var(--cream-dark); color: var(--brown); }
+    .badge-pattern { background: #e8f0e6; color: var(--green); }
+
+    /* ── CHORD CHIPS ── */
+    .chord-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .chord-chip {
+      background: var(--accent); color: #fff;
+      font-size: 0.82rem; font-weight: 600; padding: 5px 12px;
+      border-radius: 20px; font-family: 'DM Mono', monospace;
+      cursor: pointer; transition: background .15s;
+    }
+    .chord-chip:hover { background: var(--accent-light); }
+
+    /* ── LYRICS VIEW ── */
+    .lyrics-controls {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .lyrics-controls label { font-size: 0.8rem; color: var(--brown-light); }
+    .scroll-btn {
+      background: var(--accent); color: #fff; border: none;
+      padding: 7px 16px; border-radius: 6px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .scroll-btn:hover { background: var(--accent-light); }
+    .scroll-btn.stop { background: var(--brown-light); }
+    .speed-input { width: 60px; padding: 6px 8px; border: 1px solid var(--cream-dark); border-radius: 6px; font-size: 0.85rem; }
+
+    .lyrics-box {
+      background: var(--brown); color: var(--cream);
+      border-radius: var(--radius); padding: 20px;
+      font-family: 'DM Mono', monospace; font-size: 0.9rem; line-height: 1.9;
+      max-height: 420px; overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+    .part-label {
+      font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--accent-light); margin-top: 20px; margin-bottom: 4px;
+    }
+    .part-label:first-child { margin-top: 0; }
+    .lyric-line { white-space: pre-wrap; line-height: 2.2; position: relative; }
+    .lyric-chord {
+      color: var(--accent-light); font-weight: 700; font-size: 0.82rem;
+      vertical-align: super; font-style: normal; margin-right: 1px;
+    }
+
+    /* ── CHORD LIBRARY ── */
+    .chord-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .chord-card {
+      background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 14px; cursor: pointer; transition: box-shadow .15s;
+    }
+    .chord-card:hover { box-shadow: 0 4px 16px rgba(61,43,31,0.15); }
+    .chord-card h3 { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+
+    /* ── STRING TABLE ── */
+    .string-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .string-table th { font-size: 0.72rem; color: var(--brown-light); font-weight: 500; text-align: left; padding: 2px 4px; }
+    .string-table td { padding: 3px 4px; border-top: 1px solid var(--cream-dark); }
+    .string-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .muted { color: var(--brown-light); font-style: italic; }
+
+    /* ── PATTERNS ── */
+    .pattern-card {
+      background: #fff; border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 16px; margin-bottom: 10px;
+    }
+    .pattern-notation {
+      font-family: 'DM Mono', monospace; font-size: 1.4rem; font-weight: 700;
+      color: var(--accent); letter-spacing: .15em; margin: 8px 0;
+    }
+    .pattern-notation .down { color: var(--accent); }
+    .pattern-notation .up { color: var(--green); }
+    .pattern-notes { font-size: 0.82rem; color: var(--brown-light); }
+
+    /* ── PRACTICE TAB ── */
+    .practice-placeholder {
+      text-align: center; padding: 60px 20px; color: var(--brown-light);
+    }
+    .practice-placeholder i { font-size: 3rem; margin-bottom: 12px; display: block; }
+    .practice-placeholder h3 { font-family: 'Lora', serif; margin-bottom: 8px; }
+
+    /* ── ADMIN ── */
+    .admin-section { margin-bottom: 24px; }
+    .admin-section h3 {
+      font-family: 'Lora', serif; font-size: 1rem; font-weight: 600;
+      padding-bottom: 8px; border-bottom: 1px solid var(--cream-dark); margin-bottom: 12px;
+    }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { font-size: 0.82rem; font-weight: 500; color: var(--brown-light); display: block; margin-bottom: 4px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 9px 11px; border: 1px solid var(--cream-dark);
+      border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+      background: #fff; color: var(--brown); outline: none;
+      transition: border-color .15s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      border-color: var(--accent);
+    }
+    .form-group textarea { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn {
+      padding: 9px 18px; border: none; border-radius: 7px; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+      transition: all .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary { background: var(--cream-dark); color: var(--brown); }
+    .btn-secondary:hover { background: #e0d8cc; }
+    .btn-danger { background: #dc3545; color: #fff; }
+    .btn-danger:hover { background: #bb2d3b; }
+    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+    /* ── SONG ADMIN ── */
+    .part-builder { border: 1px solid var(--cream-dark); border-radius: 8px; padding: 12px; margin-top: 8px; }
+    .part-row {
+      display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--cream-dark);
+    }
+    .part-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .part-row-controls { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .part-lyrics-input { font-family: 'DM Mono', monospace; font-size: 0.82rem; min-height: 60px; }
+    .add-part-btn {
+      background: none; border: 1.5px dashed var(--brown-light); color: var(--brown-light);
+      padding: 7px; border-radius: 7px; cursor: pointer; width: 100%; font-size: 0.85rem;
+      margin-top: 8px; transition: all .15s;
+    }
+    .add-part-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── FINGERING ADMIN ── */
+    .fingering-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 6px; }
+    .fingering-string { background: var(--cream-dark); border-radius: 6px; padding: 6px; }
+    .fingering-string .string-name { font-size: 0.7rem; font-weight: 600; text-align: center; margin-bottom: 4px; color: var(--brown-light); }
+    .fingering-string input, .fingering-string select {
+      width: 100%; padding: 4px 5px; font-size: 0.75rem; border-radius: 4px;
+      border: 1px solid #ccc; margin-bottom: 3px;
+    }
+    .fingering-string .pluck-row { display: flex; align-items: center; gap: 4px; font-size: 0.72rem; }
+    .fingering-string .pluck-row input[type=checkbox] { width: auto; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 200; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff; border-radius: var(--radius); padding: 20px;
+      max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto;
+    }
+    .modal h3 { font-family: 'Lora', serif; margin-bottom: 12px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--brown); color: var(--cream); padding: 10px 20px;
+      border-radius: 20px; font-size: 0.85rem; z-index: 300;
+      opacity: 0; transition: opacity .3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; padding: 40px 20px; color: var(--brown-light); }
+    .empty i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+    .empty p { font-size: 0.9rem; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+    }
+    .section-header h2 { font-family: 'Lora', serif; font-size: 1.15rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="guitar-icon">🎸</span>
+  <h1>Decent Guitar</h1>
+  <a href="./decent-guitar-reference.html" target="_blank" class="info-btn" title="Project reference">ⓘ</a>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('songs')"><i class="ti ti-music"></i>Songs</button>
+  <button class="tab-btn" onclick="switchTab('chords')"><i class="ti ti-hand-finger"></i>Chords</button>
+  <button class="tab-btn" onclick="switchTab('patterns')"><i class="ti ti-wave-sine"></i>Patterns</button>
+  <button class="tab-btn" onclick="switchTab('practice')"><i class="ti ti-clock"></i>Practice</button>
+  <button class="tab-btn" onclick="switchTab('admin')"><i class="ti ti-settings"></i>Admin</button>
+</div>
+
+<!-- ══ SONGS TAB ══ -->
+<div id="tab-songs" class="tab-content active">
+  <!-- Song List View -->
+  <div id="song-list-view">
+    <div class="section-header">
+      <h2>Songs</h2>
+    </div>
+    <div id="songs-list"><div class="empty"><i class="ti ti-music-off"></i><p>No songs yet. Add one in Admin.</p></div></div>
+  </div>
+
+  <!-- Song Detail View -->
+  <div id="song-detail-view" class="song-detail">
+    <button class="back-btn" onclick="showSongList()"><i class="ti ti-chevron-left"></i> Songs</button>
+    <div class="song-title-block">
+      <h2 id="detail-title"></h2>
+      <div class="artist" id="detail-artist"></div>
+      <div class="song-badges" id="detail-badges"></div>
+    </div>
+
+    <!-- Chords used -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);margin-bottom:6px;">Chords in this song</div>
+      <div class="chord-chips" id="detail-chord-chips"></div>
+    </div>
+
+    <!-- Lyrics controls -->
+    <div class="lyrics-controls">
+      <button class="scroll-btn" id="scroll-toggle-btn" onclick="toggleScroll()">
+        <i class="ti ti-player-play"></i> Auto-scroll
+      </button>
+      <label>Speed: <input type="range" id="scroll-speed" min="1" max="10" value="3" style="width:80px;vertical-align:middle;" oninput="updateScrollSpeed()"></label>
+    </div>
+
+    <!-- Lyrics box -->
+    <div class="lyrics-box" id="lyrics-box"></div>
+
+    <!-- Source link -->
+    <div id="detail-source" style="margin-top:10px;font-size:0.8rem;"></div>
+  </div>
+</div>
+
+<!-- ══ CHORDS TAB ══ -->
+<div id="tab-chords" class="tab-content">
+  <div class="section-header"><h2>Chord Library</h2></div>
+  <div class="chord-grid" id="chords-grid">
+    <div class="empty" style="grid-column:1/-1;"><i class="ti ti-hand-off"></i><p>No chords yet. Add in Admin.</p></div>
+  </div>
+  <!-- Chord detail modal -->
+  <div class="modal-overlay" id="chord-modal">
+    <div class="modal">
+      <h3 id="chord-modal-name"></h3>
+      <table class="string-table" id="chord-modal-table">
+        <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PATTERNS TAB ══ -->
+<div id="tab-patterns" class="tab-content">
+  <div class="section-header"><h2>Strumming Patterns</h2></div>
+  <div id="patterns-list">
+    <div class="empty"><i class="ti ti-wave-sine"></i><p>No patterns yet. Add in Admin.</p></div>
+  </div>
+</div>
+
+<!-- ══ PRACTICE TAB ══ -->
+<div id="tab-practice" class="tab-content">
+  <div class="practice-placeholder">
+    <i class="ti ti-clock"></i>
+    <h3>Practice Mode</h3>
+    <p>Daily practice sessions coming soon — chord changes, pattern drilling, timing, and finger exercises.</p>
+  </div>
+</div>
+
+<!-- ══ ADMIN TAB ══ -->
+<div id="tab-admin" class="tab-content">
+
+  <!-- Add Chord -->
+  <div class="admin-section">
+    <h3>Add Chord</h3>
+    <div class="form-group">
+      <label>Chord Name</label>
+      <input type="text" id="chord-name" placeholder="e.g. Em, G, C" />
+    </div>
+    <div class="form-group">
+      <label>Fingering (per string)</label>
+      <div class="fingering-grid" id="fingering-grid"></div>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <input type="text" id="chord-notes" placeholder="e.g. Barre chord at 2nd fret" />
+    </div>
+    <button class="btn btn-primary" onclick="saveChord()">Save Chord</button>
+  </div>
+
+  <!-- Add Strumming Pattern -->
+  <div class="admin-section">
+    <h3>Add Strumming Pattern</h3>
+    <div class="form-group">
+      <label>Notation</label>
+      <input type="text" id="pattern-notation" placeholder="e.g. D DU UDU" />
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <input type="text" id="pattern-notes-input" placeholder="e.g. Common folk pattern" />
+    </div>
+    <button class="btn btn-primary" onclick="savePattern()">Save Pattern</button>
+  </div>
+
+  <!-- Add Song -->
+  <div class="admin-section">
+    <h3>Add Song</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Title</label><input type="text" id="song-title" placeholder="Song title" /></div>
+      <div class="form-group"><label>Artist</label><input type="text" id="song-artist" placeholder="Artist name" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Capo Fret (leave blank if none)</label><input type="number" id="song-capo" placeholder="e.g. 2" min="1" max="12" /></div>
+      <div class="form-group"><label>Default Strumming Pattern</label>
+        <select id="song-default-pattern"><option value="">— same pattern throughout (optional) —</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Source URL (optional)</label><input type="text" id="song-source" placeholder="https://..." /></div>
+    <div class="form-group"><label>Notes (optional)</label><input type="text" id="song-notes-input" placeholder="Any notes about this song" /></div>
+
+    <!-- Parts builder -->
+    <div class="form-group">
+      <label>Song Parts &amp; Lyrics</label>
+      <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:6px;">
+        Use <code>[ChordName]</code> inline in lyrics to mark chord changes. e.g. <code>[Em]Never gonna [G]give you up</code>
+      </p>
+      <div class="part-builder" id="parts-builder"></div>
+      <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveSong()">Save Song</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://ntrhptxetvdjhoqfaytl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50cmhwdHhldHZkamhvcWZheXRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NTc2NDQsImV4cCI6MjA5NTIzMzY0NH0.dWpCNGNtUMAqFC3S22s-xxIUMYWyH9TnPwAhyVYuhqk';
+
+const STRINGS = ['e','a','d','g','b','high_e'];
+const STRING_LABELS = { e:'E', a:'A', d:'D', g:'G', b:'B', high_e:'High E' };
+const STRING_COLORS = { e:'#c0622a', a:'#a0522d', d:'#8b6914', g:'#4a6741', b:'#2a5a8a', high_e:'#7a3a8a' };
+
+// ── STATE ──
+let allSongs = [], allChords = [], allPatterns = [], allParts = [];
+let currentSong = null;
+let scrollInterval = null;
+let partRows = []; // admin form state
+
+// ── API ──
+async function api(path, method = 'GET', body = null, extra = '') {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': method === 'POST' ? 'return=representation' : '' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}${extra}`, opts);
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || r.statusText); }
+  return method === 'DELETE' ? null : r.json();
+}
+
+// ── TABS ──
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.querySelectorAll('.tab-btn')[['songs','chords','patterns','practice','admin'].indexOf(name)].classList.add('active');
+  if (name === 'songs') loadSongs();
+  if (name === 'chords') loadChords();
+  if (name === 'patterns') loadPatterns();
+  if (name === 'admin') { loadAdminDropdowns(); initFingeringGrid(); if (partRows.length === 0) addPartRow(); }
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── SONGS ──
+async function loadSongs() {
+  try {
+    allSongs = await api('songs?select=*,strumming_patterns(notation)&order=title');
+    renderSongList();
+  } catch(e) { toast('Error loading songs'); }
+}
+
+function renderSongList() {
+  const el = document.getElementById('songs-list');
+  if (!allSongs.length) { el.innerHTML = '<div class="empty"><i class="ti ti-music-off"></i><p>No songs yet. Add one in Admin.</p></div>'; return; }
+  el.innerHTML = allSongs.map(s => `
+    <div class="song-item" onclick="openSong('${s.id}')">
+      <div>
+        <h3>${s.title}</h3>
+        ${s.artist ? `<div class="artist">${s.artist}</div>` : ''}
+      </div>
+      ${s.capo_fret ? `<span class="capo-badge">Capo ${s.capo_fret}</span>` : ''}
+    </div>`).join('');
+}
+
+async function openSong(id) {
+  try {
+    // Load song with parts order, lyrics, part strumming
+    const [song, partsOrder, lyrics, partStrumming] = await Promise.all([
+      api(`songs?id=eq.${id}&select=*,strumming_patterns(notation)`),
+      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name)&order=part_order`),
+      api(`song_lyrics?select=*,song_parts_order(song_id,part_order,parts(name))&order=song_parts_order(part_order),line_order`),
+      api(`song_part_strumming?select=*,song_parts_order!inner(song_id),strumming_patterns(notation)&song_parts_order.song_id=eq.${id}`)
+    ]);
+
+    currentSong = song[0];
+    currentSong._partsOrder = partsOrder;
+    // Filter lyrics to this song
+    currentSong._lyrics = lyrics.filter(l => l.song_parts_order?.song_id === id);
+    currentSong._partStrumming = partStrumming;
+
+    // Derive chords from lyrics
+    const chordSet = new Set();
+    currentSong._lyrics.forEach(l => {
+      const matches = l.lyric_text.match(/\[([^\]]+)\]/g) || [];
+      matches.forEach(m => chordSet.add(m.slice(1,-1)));
+    });
+    currentSong._chords = [...chordSet];
+
+    renderSongDetail();
+    document.getElementById('song-list-view').style.display = 'none';
+    document.getElementById('song-detail-view').classList.add('active');
+  } catch(e) { console.error(e); toast('Error loading song'); }
+}
+
+function renderSongDetail() {
+  const s = currentSong;
+  document.getElementById('detail-title').textContent = s.title;
+  document.getElementById('detail-artist').textContent = s.artist || '';
+
+  // Badges
+  const badges = [];
+  if (s.capo_fret) badges.push(`<span class="badge badge-capo">Capo ${s.capo_fret}</span>`);
+  if (s.strumming_patterns?.notation) badges.push(`<span class="badge badge-pattern">${s.strumming_patterns.notation}</span>`);
+  document.getElementById('detail-badges').innerHTML = badges.join('');
+
+  // Chord chips
+  document.getElementById('detail-chord-chips').innerHTML = s._chords.map(c =>
+    `<span class="chord-chip" onclick="showChordModal('${c}')">${c}</span>`).join('');
+
+  // Lyrics
+  renderLyrics();
+
+  // Source
+  const srcEl = document.getElementById('detail-source');
+  srcEl.innerHTML = s.source_url ? `<a href="${s.source_url}" target="_blank" style="color:var(--accent);">View source ↗</a>` : '';
+}
+
+function renderLyrics() {
+  const box = document.getElementById('lyrics-box');
+  const lyrics = currentSong._lyrics;
+  if (!lyrics.length) { box.innerHTML = '<div style="color:var(--brown-light)">No lyrics added yet.</div>'; return; }
+
+  // Group by part_order
+  const parts = {};
+  lyrics.forEach(l => {
+    const key = l.song_parts_order?.part_order;
+    const label = l.song_parts_order?.parts?.name || '';
+    if (!parts[key]) parts[key] = { label, lines: [] };
+    parts[key].lines.push(l);
+  });
+
+  let html = '';
+  Object.keys(parts).sort((a,b) => a-b).forEach(k => {
+    const p = parts[k];
+    html += `<div class="part-label">${p.label}</div>`;
+    p.lines.forEach(l => {
+      html += `<div class="lyric-line">${formatLyricLine(l.lyric_text)}</div>`;
+    });
+  });
+  box.innerHTML = html;
+}
+
+function formatLyricLine(text) {
+  // Replace [Chord] markers with styled spans
+  return text.replace(/\[([^\]]+)\]/g, (_, chord) =>
+    `<em class="lyric-chord">[${chord}]</em>`);
+}
+
+function showSongList() {
+  stopScroll();
+  document.getElementById('song-list-view').style.display = '';
+  document.getElementById('song-detail-view').classList.remove('active');
+  currentSong = null;
+}
+
+// ── AUTO-SCROLL ──
+let scrolling = false;
+function toggleScroll() {
+  scrolling ? stopScroll() : startScroll();
+}
+function startScroll() {
+  scrolling = true;
+  const btn = document.getElementById('scroll-toggle-btn');
+  btn.innerHTML = '<i class="ti ti-player-pause"></i> Pause';
+  btn.classList.add('stop');
+  const box = document.getElementById('lyrics-box');
+  const speed = getScrollSpeed();
+  scrollInterval = setInterval(() => {
+    box.scrollTop += 1;
+    if (box.scrollTop + box.clientHeight >= box.scrollHeight) stopScroll();
+  }, speed);
+}
+function stopScroll() {
+  scrolling = false;
+  clearInterval(scrollInterval);
+  const btn = document.getElementById('scroll-toggle-btn');
+  btn.innerHTML = '<i class="ti ti-player-play"></i> Auto-scroll';
+  btn.classList.remove('stop');
+}
+function getScrollSpeed() {
+  const val = parseInt(document.getElementById('scroll-speed').value);
+  return Math.round(200 / val); // ms per tick — lower = faster
+}
+function updateScrollSpeed() {
+  if (scrolling) { stopScroll(); startScroll(); }
+}
+
+// ── CHORDS ──
+async function loadChords() {
+  try {
+    allChords = await api('chords?select=*&order=name');
+    renderChordGrid();
+  } catch(e) { toast('Error loading chords'); }
+}
+
+function renderChordGrid() {
+  const el = document.getElementById('chords-grid');
+  if (!allChords.length) { el.innerHTML = '<div class="empty" style="grid-column:1/-1;"><i class="ti ti-hand-off"></i><p>No chords yet. Add in Admin.</p></div>'; return; }
+  el.innerHTML = allChords.map(c => `
+    <div class="chord-card" onclick="showChordModalById(${c.id})">
+      <h3>${c.name}</h3>
+      ${renderMiniStringTable(c.fingering)}
+    </div>`).join('');
+}
+
+function renderMiniStringTable(f) {
+  if (!f) return '';
+  return STRINGS.map(s => {
+    const d = f[s] || {};
+    const dot = d.plucked ? `<span class="string-dot" style="background:${STRING_COLORS[s]}"></span>` : `<span style="color:var(--brown-light)">✕</span>`;
+    const fret = d.plucked ? (d.fret ? `${d.fret}` : 'O') : '✕';
+    return `<div style="font-size:0.72rem;display:flex;align-items:center;gap:4px;"><span style="width:38px;color:var(--brown-light)">${STRING_LABELS[s]}</span>${dot} ${fret !== '✕' ? fret : ''}</div>`;
+  }).join('');
+}
+
+function showChordModalById(id) {
+  const c = allChords.find(x => x.id === id);
+  if (!c) return;
+  openChordModal(c);
+}
+
+function showChordModal(name) {
+  // If chords aren't loaded yet, load them
+  if (!allChords.length) {
+    api('chords?select=*&order=name').then(chords => {
+      allChords = chords;
+      const c = allChords.find(x => x.name === name);
+      if (c) openChordModal(c);
+    });
+  } else {
+    const c = allChords.find(x => x.name === name);
+    if (c) openChordModal(c);
+  }
+}
+
+function openChordModal(c) {
+  document.getElementById('chord-modal-name').textContent = c.name;
+  const tbody = document.querySelector('#chord-modal-table tbody');
+  tbody.innerHTML = STRINGS.map(s => {
+    const d = (c.fingering || {})[s] || {};
+    const plucked = d.plucked ? '✓' : '✕';
+    const finger = d.finger != null ? d.finger : '—';
+    const fret = d.fret != null ? d.fret : (d.plucked ? 'Open' : '—');
+    return `<tr><td><span style="color:${STRING_COLORS[s]};font-weight:600">${STRING_LABELS[s]}</span></td><td>${plucked}</td><td>${finger}</td><td>${fret}</td></tr>`;
+  }).join('');
+  document.getElementById('chord-modal-notes').textContent = c.notes || '';
+  document.getElementById('chord-modal').classList.add('active');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ── PATTERNS ──
+async function loadPatterns() {
+  try {
+    allPatterns = await api('strumming_patterns?select=*&order=notation');
+    renderPatterns();
+  } catch(e) { toast('Error loading patterns'); }
+}
+
+function renderPatterns() {
+  const el = document.getElementById('patterns-list');
+  if (!allPatterns.length) { el.innerHTML = '<div class="empty"><i class="ti ti-wave-sine"></i><p>No patterns yet. Add in Admin.</p></div>'; return; }
+  el.innerHTML = allPatterns.map(p => `
+    <div class="pattern-card">
+      <div class="pattern-notation">${formatNotation(p.notation)}</div>
+      ${p.notes ? `<div class="pattern-notes">${p.notes}</div>` : ''}
+    </div>`).join('');
+}
+
+function formatNotation(notation) {
+  return notation.split('').map(c => {
+    if (c === 'D') return `<span class="down">D</span>`;
+    if (c === 'U') return `<span class="up" style="color:var(--green)">U</span>`;
+    return c;
+  }).join('');
+}
+
+// ── ADMIN ──
+async function loadAdminDropdowns() {
+  try {
+    [allPatterns, allParts] = await Promise.all([
+      api('strumming_patterns?select=*&order=notation'),
+      api('parts?select=*&order=name')
+    ]);
+    const sel = document.getElementById('song-default-pattern');
+    sel.innerHTML = '<option value="">— same pattern throughout (optional) —</option>' +
+      allPatterns.map(p => `<option value="${p.id}">${p.notation}</option>`).join('');
+  } catch(e) {}
+}
+
+// ── FINGERING GRID ──
+function initFingeringGrid() {
+  const grid = document.getElementById('fingering-grid');
+  grid.innerHTML = STRINGS.map(s => `
+    <div class="fingering-string">
+      <div class="string-name" style="color:${STRING_COLORS[s]}">${STRING_LABELS[s]}</div>
+      <div class="pluck-row"><input type="checkbox" id="pluck-${s}" checked /><label for="pluck-${s}" style="font-size:0.7rem">Plucked</label></div>
+      <select id="finger-${s}">
+        <option value="">—</option>
+        <option value="1">1</option><option value="2">2</option>
+        <option value="3">3</option><option value="4">4</option>
+      </select>
+      <input type="number" id="fret-${s}" placeholder="Fret" min="1" max="24" />
+    </div>`).join('');
+}
+
+function getFingeringData() {
+  const f = {};
+  STRINGS.forEach(s => {
+    const plucked = document.getElementById(`pluck-${s}`).checked;
+    const fingerVal = document.getElementById(`finger-${s}`).value;
+    const fretVal = document.getElementById(`fret-${s}`).value;
+    f[s] = {
+      plucked,
+      finger: fingerVal ? parseInt(fingerVal) : null,
+      fret: fretVal ? parseInt(fretVal) : null
+    };
+  });
+  return f;
+}
+
+async function saveChord() {
+  const name = document.getElementById('chord-name').value.trim();
+  if (!name) { toast('Chord name required'); return; }
+  const fingering = getFingeringData();
+  const notes = document.getElementById('chord-notes').value.trim() || null;
+  try {
+    await api('chords', 'POST', { name, fingering, notes });
+    toast(`Chord "${name}" saved`);
+    document.getElementById('chord-name').value = '';
+    document.getElementById('chord-notes').value = '';
+    initFingeringGrid();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function savePattern() {
+  const notation = document.getElementById('pattern-notation').value.trim();
+  if (!notation) { toast('Notation required'); return; }
+  const notes = document.getElementById('pattern-notes-input').value.trim() || null;
+  try {
+    await api('strumming_patterns', 'POST', { notation, notes });
+    toast(`Pattern "${notation}" saved`);
+    document.getElementById('pattern-notation').value = '';
+    document.getElementById('pattern-notes-input').value = '';
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+// ── PARTS BUILDER ──
+function addPartRow() {
+  const row = { id: Date.now(), partId: '', strummingId: '', lyrics: '' };
+  partRows.push(row);
+  renderPartsBuilder();
+}
+
+function removePartRow(id) {
+  partRows = partRows.filter(r => r.id !== id);
+  renderPartsBuilder();
+}
+
+function renderPartsBuilder() {
+  const el = document.getElementById('parts-builder');
+  if (!partRows.length) { el.innerHTML = ''; return; }
+  el.innerHTML = partRows.map((row, idx) => `
+    <div class="part-row" data-id="${row.id}">
+      <div class="part-row-controls">
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:6px">
+            <label style="font-size:0.75rem">Part</label>
+            <select onchange="updatePartRow(${row.id}, 'partId', this.value)">
+              <option value="">— select —</option>
+              ${allParts.map(p => `<option value="${p.id}" ${row.partId==p.id?'selected':''}>${p.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:6px">
+            <label style="font-size:0.75rem">Strumming (override)</label>
+            <select onchange="updatePartRow(${row.id}, 'strummingId', this.value)">
+              <option value="">— use default —</option>
+              ${allPatterns.map(p => `<option value="${p.id}" ${row.strummingId==p.id?'selected':''}>${p.notation}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label style="font-size:0.75rem">Lyrics (use [Chord] for chord changes)</label>
+          <textarea class="part-lyrics-input" placeholder="[Em]Row, row, [G]row your boat..." onchange="updatePartRow(${row.id}, 'lyrics', this.value)">${row.lyrics}</textarea>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="flex-shrink:0;margin-top:22px" onclick="removePartRow(${row.id})"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+}
+
+function updatePartRow(id, field, value) {
+  const row = partRows.find(r => r.id === id);
+  if (row) row[field] = value;
+}
+
+async function saveSong() {
+  const title = document.getElementById('song-title').value.trim();
+  if (!title) { toast('Title required'); return; }
+
+  const capoVal = document.getElementById('song-capo').value;
+  const defaultPatternVal = document.getElementById('song-default-pattern').value;
+
+  const songPayload = {
+    title,
+    artist: document.getElementById('song-artist').value.trim() || null,
+    capo_fret: capoVal ? parseInt(capoVal) : null,
+    source_url: document.getElementById('song-source').value.trim() || null,
+    notes: document.getElementById('song-notes-input').value.trim() || null,
+    default_strumming_pattern_id: defaultPatternVal ? parseInt(defaultPatternVal) : null
+  };
+
+  try {
+    const [newSong] = await api('songs', 'POST', songPayload);
+
+    // Insert parts in order
+    for (let i = 0; i < partRows.length; i++) {
+      const row = partRows[i];
+      if (!row.partId) continue;
+
+      const [spo] = await api('song_parts_order', 'POST', {
+        song_id: newSong.id,
+        part_id: parseInt(row.partId),
+        part_order: i + 1
+      });
+
+      // Part strumming override
+      if (row.strummingId) {
+        await api('song_part_strumming', 'POST', {
+          song_parts_order_id: spo.id,
+          strumming_pattern_id: parseInt(row.strummingId)
+        });
+      }
+
+      // Lyrics
+      const lines = row.lyrics.split('\n').filter(l => l.trim() !== '');
+      for (let j = 0; j < lines.length; j++) {
+        await api('song_lyrics', 'POST', {
+          song_parts_order_id: spo.id,
+          line_order: j + 1,
+          lyric_text: lines[j]
+        });
+      }
+    }
+
+    toast(`"${title}" saved!`);
+    // Reset form
+    ['song-title','song-artist','song-capo','song-source','song-notes-input'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('song-default-pattern').value = '';
+    partRows = [];
+    renderPartsBuilder();
+    addPartRow();
+
+  } catch(e) { console.error(e); toast('Error saving song: ' + e.message); }
+}
+
+// ── INIT ──
+loadSongs();
+</script>
+</body>
+</html>
