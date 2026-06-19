@@ -887,6 +887,7 @@ function handleTextImport() {
   }
 }
 
+function isChordLine(text) {
   const trimmed = text.trim();
   if (!trimmed) return false;
   const tokens = trimmed.split(/\s+/);
