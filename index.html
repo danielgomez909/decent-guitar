@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     :root {
       --cream: #faf7f2; --cream-dark: #f0ebe0; --brown: #3d2b1f; --brown-light: #7a5c4a;
@@ -308,8 +307,12 @@
     <hr class="admin-divider" />
     <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Add Song</h3>
     <div class="form-group">
-      <label>Import from Ultimate Guitar PDF (optional)</label>
-      <input type="file" id="ug-pdf-input" accept="application/pdf" onchange="handlePdfImport(event)" />
+      <label>Import from Ultimate Guitar text (optional)</label>
+      <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:6px;">
+        Paste the song text below (title line, Capo line, then [Intro], [Verse 1], etc. with chord/lyric lines).
+      </p>
+      <textarea id="ug-text-input" placeholder="Mad World Chords by Gary Jules&#10;Capo: 1st fret&#10;...&#10;&#10;[Intro]&#10;Em  A&#10;Em  A&#10;&#10;[Verse 1]&#10;Em              G&#10;  All around me are familiar faces&#10;..." style="min-height:160px;font-family:'Courier New',monospace;font-size:0.82rem;"></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="handleTextImport()">Parse Text</button>
       <div id="import-status" style="font-size:0.82rem;color:var(--brown-light);margin-top:6px;"></div>
     </div>
     <div class="form-row">
@@ -866,38 +869,17 @@ async function savePattern() {
   } catch(e) { toast('Error: ' + e.message); }
 }
 
-// ── UG PDF IMPORT ──
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
+// ── UG TEXT IMPORT ──
 const CHORD_TOKEN_RE = /^[A-G](#|b)?(m|maj|min|sus|dim|aug|add)?[0-9]*(\/[A-G](#|b)?)?$/;
 
-async function handlePdfImport(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+function handleTextImport() {
+  const raw = document.getElementById('ug-text-input').value;
   const statusEl = document.getElementById('import-status');
-  statusEl.textContent = 'Reading PDF…';
+  if (!raw.trim()) { statusEl.textContent = 'Paste song text first.'; return; }
   try {
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-
-    // Extract text lines with x-position info (needed to detect chord-line spacing)
-    let allLines = [];
-    for (let p = 1; p <= pdf.numPages; p++) {
-      const page = await pdf.getPage(p);
-      const content = await page.getTextContent();
-      const buckets = []; // { y, items[] }
-      content.items.forEach(item => {
-        const y = item.transform[5];
-        let bucket = buckets.find(b => Math.abs(b.y - y) < 2);
-        if (!bucket) { bucket = { y, items: [] }; buckets.push(bucket); }
-        bucket.items.push({ x: item.transform[4], text: item.str });
-      });
-      buckets.sort((a,b) => b.y - a.y);
-      buckets.forEach(b => allLines.push(b.items.sort((x,y) => x.x - y.x)));
-    }
-
+    const textLines = raw.split('\n');
     statusEl.textContent = 'Parsing song structure…';
-    parseUgLines(allLines);
+    parseUgLines(textLines);
     statusEl.textContent = 'Imported — review and adjust below, then Save Song.';
   } catch(e) {
     console.error(e);
@@ -905,32 +887,13 @@ async function handlePdfImport(event) {
   }
 }
 
-function reconstructLine(items) {
-  // Build a string preserving approximate spacing based on x-position
-  if (!items.length) return '';
-  let out = '';
-  let lastEnd = items[0].x;
-  const CHAR_WIDTH = 5.2; // approx monospace char width in PDF points
-  items.forEach(it => {
-    const gap = Math.round((it.x - lastEnd) / CHAR_WIDTH);
-    if (out.length > 0) out += ' '.repeat(Math.max(0, gap));
-    out += it.text;
-    lastEnd = it.x + it.text.length * CHAR_WIDTH;
-  });
-  return out;
-}
-
-function isChordLine(text) {
   const trimmed = text.trim();
   if (!trimmed) return false;
   const tokens = trimmed.split(/\s+/);
   return tokens.length > 0 && tokens.every(t => CHORD_TOKEN_RE.test(t));
 }
 
-function parseUgLines(allLines) {
-  // Reconstruct each line of text, find metadata, then parts/chords/lyrics
-  const textLines = allLines.map(reconstructLine);
-
+function parseUgLines(textLines) {
   // Title / artist — first line typically "Title Chords by Artist"
   let title = '', artist = '';
   const titleLine = textLines.find(l => /chords by/i.test(l));
