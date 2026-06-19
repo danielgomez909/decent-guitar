@@ -419,11 +419,24 @@ function renderSongList() {
 
 async function openSong(id) {
   try {
-    const [song, partsOrder, lyrics] = await Promise.all([
+    const [song, partsOrder] = await Promise.all([
       api(`songs?id=eq.${id}&select=*,strumming_patterns(notation)`),
-      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name)&order=part_order`),
-      api(`song_lyrics?select=*,song_parts_order!inner(song_id,part_order,parts(name))&song_parts_order.song_id=eq.${id}&order=song_parts_order.part_order,line_order`)
+      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name)&order=part_order`)
     ]);
+
+    // Fetch lyrics using the known SPO ids
+    let lyrics = [];
+    if (partsOrder.length) {
+      const spoIds = partsOrder.map(p => p.id).join(',');
+      lyrics = await api(`song_lyrics?song_parts_order_id=in.(${spoIds})&order=song_parts_order_id,line_order`);
+      // Attach part info onto each lyric row for rendering
+      lyrics.forEach(l => {
+        const spo = partsOrder.find(p => p.id === l.song_parts_order_id);
+        l._part_order = spo?.part_order;
+        l._part_name = spo?.parts?.name;
+      });
+    }
+
     currentSong = song[0];
     currentSong._partsOrder = partsOrder;
     currentSong._lyrics = lyrics;
@@ -466,8 +479,8 @@ function renderLyrics() {
   // Group by part_order
   const partsMap = {};
   lyrics.forEach(l => {
-    const key = l.song_parts_order?.part_order;
-    const label = l.song_parts_order?.parts?.name || '';
+    const key = l._part_order;
+    const label = l._part_name || '';
     if (!partsMap[key]) partsMap[key] = { label, lines: [] };
     partsMap[key].lines.push(l);
   });
