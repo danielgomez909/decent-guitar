@@ -135,13 +135,14 @@
   </table>
 
   <h3>song_lyrics</h3>
-  <p>One row per lyric line. Chord changes are embedded inline using <code>[ChordName]</code> notation (e.g. <code>[Em]Never gonna [G]give you up</code>). Chord list for display is derived at query time by parsing these markers — no separate song_part_chords table needed.</p>
+  <p>One row per line — chord line or lyric line, distinguished by <code>line_type</code>. Lines are strictly ordered by <code>line_order</code> within a part (not paired or grouped — just sequential). Fixed-width text in chord lines is used to visually align chords above lyrics on display. A part may have chord-only or lyric-only lines (e.g. instrumental bars).</p>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
     <tr><td><span class="badge pk">PK</span> id</td><td>uuid</td><td></td></tr>
     <tr><td><span class="badge fk">FK</span> song_parts_order_id</td><td>uuid</td><td>→ song_parts_order, cascade delete</td></tr>
     <tr><td>line_order</td><td>int</td><td>1-based sequence within a part. Unique with song_parts_order_id.</td></tr>
-    <tr><td>lyric_text</td><td>text</td><td>Raw lyric line with inline [Chord] markers</td></tr>
+    <tr><td>lyric_text</td><td>text</td><td>Raw line text, fixed-width spacing for chord alignment</td></tr>
+    <tr><td>line_type</td><td>text</td><td>'chords' or 'lyrics' (check constraint). Comment type planned — see backlog.</td></tr>
   </table>
 
   <h2>Deployment Workflow</h2>
@@ -160,13 +161,37 @@
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song edit / delete in Admin</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord edit / delete in Admin</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Strumming pattern edit / delete in Admin</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song versioning — version number per song (same song, multiple variations)</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song difficulty field — Absolute Beginner, Beginner, Intermediate, Advanced</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Third line type: "comment" — italicized note-only line, distinct styling from chord/lyric</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Insert a line mid-part during admin entry (drag-and-drop or insert-above/below control)</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Chord chips on song detail page — clickable/hover to show fingering (currently only works on Chords tab)</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Numeric speed value displayed next to auto-scroll slider</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Auto-scroll start delay (~10 sec) with visible countdown before scrolling begins</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Compact lyrics display mode — toggle for tighter line spacing on song detail page</div>
   <div class="backlog-item"><span class="badge tag-ux">UX</span> Part-level strumming pattern display in song detail view</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> iOS home screen icon</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> iOS home screen icon — currently shows generic "D", needs custom PNG icon set</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> Supabase RLS + authentication</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
+  <div class="backlog-item"><span class="badge tag-data">Data</span> UG text import refinement — broader chord-pattern coverage, edge case handling</div>
+
+  <h2>Ultimate Guitar Text Import</h2>
+  <p>Admin → Songs includes a paste-in text importer. Paste UG-style song text (title/artist header, Capo line, then <code>[Part Name]</code> markers with chord and lyric lines below each) and click Parse Text. The parser:</p>
+  <ul style="padding-left:20px;font-size:0.9rem;line-height:1.9;">
+    <li>Extracts title/artist from a <code>"Title Chords by Artist"</code> header line</li>
+    <li>Extracts capo fret from a <code>"Capo: N"</code> line</li>
+    <li>Splits the body on <code>[Part Name]</code> markers</li>
+    <li>Classifies each line as chord or lyric — chord lines are lines where every whitespace-separated token matches a chord-name pattern (e.g. Em, A, G, D, Cmaj7, F#m)</li>
+    <li>Matches part names to the <code>parts</code> reference table where possible (e.g. "Verse 1" → "Verse"); unmatched parts are left for manual selection</li>
+    <li>Populates the existing parts/lines builder UI — fully editable before saving</li>
+  </ul>
+  <p>This is a UI pre-fill only; it does not touch the database directly. Save Song still goes through the normal save path.</p>
 
   <h2>Version History</h2>
   <div class="version-entry"><span class="version-date">June 2026 — v1.0</span> Initial build. Schema designed and deployed. App built with Songs, Chords, Patterns, Practice (placeholder), and Admin tabs. Song detail view with inline chord markers and auto-scroll lyrics.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.1</span> Fixed song detail load error (Supabase join-filter syntax). Added Admin subtabs (Chords/Patterns/Songs) with search, edit, and copy-as-new. Rebuilt auto-scroll using requestAnimationFrame for iPad compatibility.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.2</span> Redesigned song_lyrics model: changed from inline [Chord] markers to a flat line-based model (line_type: chords/lyrics, ordered by line_order, no pairing/grouping). Chord lines render in green Courier above lyric lines on the song detail page, matching Ultimate Guitar's chord-view style. Admin parts builder rebuilt with per-line C/L toggle.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.3</span> Added Ultimate Guitar text import (paste-in parser) to Admin → Songs. Lowered auto-scroll speed floor for finer control at slow speeds.</div>
 </div>
 </body>
 </html>
