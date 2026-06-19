@@ -965,12 +965,11 @@ async function saveSong() {
         if (!hasChords && !hasLyrics) continue;
         if (hasChords) {
           await api('song_lyrics', 'POST', { song_parts_order_id: spo.id, line_order: lineOrder, lyric_text: lp.chords, line_type: 'chords' });
-          lineOrder++;
         }
         if (hasLyrics) {
           await api('song_lyrics', 'POST', { song_parts_order_id: spo.id, line_order: lineOrder, lyric_text: lp.lyrics, line_type: 'lyrics' });
-          lineOrder++;
         }
+        lineOrder++;
       }
     }
     toast(`"${title}" saved!`);
