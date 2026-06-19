@@ -321,8 +321,7 @@
     <div class="form-group">
       <label>Song Parts &amp; Lyrics</label>
       <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:8px;">
-        Each part has chord lines and lyric lines. Use a fixed-width format — spaces align chords above lyrics.<br>
-        A chord line or lyric line may be left blank (e.g. instrumental bars or chord-only lines).
+        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord) or <strong style="color:var(--brown-light)">L</strong> (lyric) per line. Use fixed-width spacing to align chords above lyrics. A part may have chord-only or lyric-only lines.
       </p>
       <div class="part-builder" id="parts-builder"></div>
       <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
@@ -489,17 +488,12 @@ function renderLyrics() {
   Object.keys(partsMap).sort((a,b) => a-b).forEach(k => {
     const p = partsMap[k];
     html += `<div class="part-label">${p.label}</div>`;
-
-    // Pair up chord/lyric lines by line_order
-    // Collect all line_orders
-    const orders = [...new Set(p.lines.map(l => l.line_order))].sort((a,b) => a-b);
-    orders.forEach(order => {
-      const chordLine = p.lines.find(l => l.line_order === order && l.line_type === 'chords');
-      const lyricLine = p.lines.find(l => l.line_order === order && l.line_type === 'lyrics');
-      html += '<div class="line-pair">';
-      if (chordLine) html += `<div class="chord-row">${escHtml(chordLine.lyric_text || '')}</div>`;
-      if (lyricLine) html += `<div class="lyric-row">${escHtml(lyricLine.lyric_text || '')}</div>`;
-      html += '</div>';
+    p.lines.sort((a,b) => a.line_order - b.line_order).forEach(l => {
+      if (l.line_type === 'chords') {
+        html += `<div class="chord-row">${escHtml(l.lyric_text || '')}</div>`;
+      } else {
+        html += `<div class="lyric-row">${escHtml(l.lyric_text || '')}</div>`;
+      }
     });
   });
 
@@ -867,8 +861,11 @@ async function savePattern() {
 }
 
 // ── PARTS BUILDER ──
+// Each part has: id, partId, strummingId, lines[]
+// Each line has: id, type ('chords'|'lyrics'), text
+
 function addPartRow() {
-  partRows.push({ id: Date.now(), partId: '', strummingId: '', linePairs: [{ id: Date.now()+1, chords: '', lyrics: '' }] });
+  partRows.push({ id: Date.now(), partId: '', strummingId: '', lines: [] });
   renderPartsBuilder();
 }
 
@@ -877,15 +874,15 @@ function removePartRow(id) {
   renderPartsBuilder();
 }
 
-function addLinePair(partId) {
+function addLine(partId, type) {
   const row = partRows.find(r => r.id === partId);
-  if (row) row.linePairs.push({ id: Date.now(), chords: '', lyrics: '' });
+  if (row) row.lines.push({ id: Date.now(), type, text: '' });
   renderPartsBuilder();
 }
 
-function removeLinePair(partId, lineId) {
+function removeLine(partId, lineId) {
   const row = partRows.find(r => r.id === partId);
-  if (row) row.linePairs = row.linePairs.filter(l => l.id !== lineId);
+  if (row) row.lines = row.lines.filter(l => l.id !== lineId);
   renderPartsBuilder();
 }
 
@@ -894,11 +891,18 @@ function updatePartRow(id, field, value) {
   if (row) row[field] = value;
 }
 
-function updateLinePair(partId, lineId, field, value) {
+function updateLine(partId, lineId, value) {
   const row = partRows.find(r => r.id === partId);
   if (!row) return;
-  const line = row.linePairs.find(l => l.id === lineId);
-  if (line) line[field] = value;
+  const line = row.lines.find(l => l.id === lineId);
+  if (line) line.text = value;
+}
+
+function toggleLineType(partId, lineId) {
+  const row = partRows.find(r => r.id === partId);
+  if (!row) return;
+  const line = row.lines.find(l => l.id === lineId);
+  if (line) { line.type = line.type === 'chords' ? 'lyrics' : 'chords'; renderPartsBuilder(); }
 }
 
 function renderPartsBuilder() {
@@ -908,27 +912,34 @@ function renderPartsBuilder() {
   el.innerHTML = partRows.map(row => `
     <div class="part-block" data-id="${row.id}">
       <div class="part-block-header">
-        <div style="display:flex;gap:8px;align-items:center;flex:1">
-          <select style="flex:1;padding:7px;border:1px solid var(--cream-dark);border-radius:6px;font-size:0.85rem;" onchange="updatePartRow(${row.id},'partId',this.value)">
+        <div style="display:flex;gap:8px;align-items:center;flex:1;flex-wrap:wrap;">
+          <select style="flex:1;min-width:100px;padding:7px;border:1px solid var(--cream-dark);border-radius:6px;font-size:0.85rem;" onchange="updatePartRow(${row.id},'partId',this.value)">
             <option value="">— select part —</option>
             ${allParts.map(p => `<option value="${p.id}" ${row.partId==p.id?'selected':''}>${p.name}</option>`).join('')}
           </select>
-          <select style="flex:1;padding:7px;border:1px solid var(--cream-dark);border-radius:6px;font-size:0.85rem;" onchange="updatePartRow(${row.id},'strummingId',this.value)">
+          <select style="flex:1;min-width:100px;padding:7px;border:1px solid var(--cream-dark);border-radius:6px;font-size:0.85rem;" onchange="updatePartRow(${row.id},'strummingId',this.value)">
             <option value="">— strumming override —</option>
             ${allPatterns.map(p => `<option value="${p.id}" ${row.strummingId==p.id?'selected':''}>${p.notation}</option>`).join('')}
           </select>
         </div>
-        <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="removePartRow(${row.id})"><i class="ti ti-trash"></i></button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:8px;flex-shrink:0;" onclick="removePartRow(${row.id})"><i class="ti ti-trash"></i></button>
       </div>
-      ${row.linePairs.map(lp => `
-        <div class="line-pair-entry">
-          <div class="line-pair-inputs">
-            <input type="text" class="chord-line-input" placeholder="Chord line (e.g.  Em          G    D )" value="${escAttr(lp.chords)}" oninput="updateLinePair(${row.id},${lp.id},'chords',this.value)" style="font-family:'Courier New',monospace;font-size:0.85rem;background:#f0f8f0;color:var(--green);font-weight:600;padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;width:100%;" />
-            <input type="text" class="lyric-line-input" placeholder="Lyric line (e.g. Never gonna give you up)" value="${escAttr(lp.lyrics)}" oninput="updateLinePair(${row.id},${lp.id},'lyrics',this.value)" style="font-family:'Courier New',monospace;font-size:0.85rem;padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;width:100%;" />
-          </div>
-          <button class="btn btn-secondary btn-sm" style="flex-shrink:0;margin-top:2px" onclick="removeLinePair(${row.id},${lp.id})"><i class="ti ti-x"></i></button>
-        </div>`).join('')}
-      <button class="add-line-btn" onclick="addLinePair(${row.id})">+ Add line</button>
+      ${row.lines.map(line => {
+        const isChord = line.type === 'chords';
+        const inputStyle = isChord
+          ? 'font-family:\'Courier New\',monospace;font-size:0.85rem;background:#f0f8f0;color:var(--green);font-weight:600;padding:7px 9px;border:1px solid #b0d8b0;border-radius:6px;flex:1;'
+          : 'font-family:\'Courier New\',monospace;font-size:0.85rem;padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;flex:1;';
+        const placeholder = isChord ? 'Chord line  (e.g.  Em            G       D)' : 'Lyric line  (e.g.  All around me are familiar faces)';
+        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle chord/lyric" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${isChord ? 'var(--green)' : 'var(--brown-light)'};color:#fff;">${isChord ? 'C' : 'L'}</button>
+          <input type="text" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" />
+          <button class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:5px 8px;" onclick="removeLine(${row.id},${line.id})"><i class="ti ti-x"></i></button>
+        </div>`;
+      }).join('')}
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'chords')">+ Chord line</button>
+        <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'lyrics')">+ Lyric line</button>
+      </div>
     </div>`).join('');
 }
 
@@ -956,20 +967,19 @@ async function saveSong() {
         song_id: newSong.id, part_id: parseInt(row.partId), part_order: partOrderCounter++
       });
       if (row.strummingId) {
-        await api('song_part_strumming', 'POST', { song_parts_order_id: spo.id, strumming_pattern_id: parseInt(row.strummingId) });
+        await api('song_part_strumming', 'POST', {
+          song_parts_order_id: spo.id, strumming_pattern_id: parseInt(row.strummingId)
+        });
       }
       let lineOrder = 1;
-      for (const lp of row.linePairs) {
-        const hasChords = lp.chords && lp.chords.trim() !== '';
-        const hasLyrics = lp.lyrics && lp.lyrics.trim() !== '';
-        if (!hasChords && !hasLyrics) continue;
-        if (hasChords) {
-          await api('song_lyrics', 'POST', { song_parts_order_id: spo.id, line_order: lineOrder, lyric_text: lp.chords, line_type: 'chords' });
-        }
-        if (hasLyrics) {
-          await api('song_lyrics', 'POST', { song_parts_order_id: spo.id, line_order: lineOrder, lyric_text: lp.lyrics, line_type: 'lyrics' });
-        }
-        lineOrder++;
+      for (const line of row.lines) {
+        if (!line.text.trim()) continue;
+        await api('song_lyrics', 'POST', {
+          song_parts_order_id: spo.id,
+          line_order: lineOrder++,
+          lyric_text: line.text,
+          line_type: line.type
+        });
       }
     }
     toast(`"${title}" saved!`);
