@@ -268,14 +268,14 @@
     <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Chord Change Cycling</h3>
 
     <div class="form-group">
-      <label>Add chord to sequence</label>
-      <div style="display:flex;gap:8px;">
-        <select id="practice-chord-select" style="flex:1;"></select>
-        <button class="btn btn-primary btn-sm" onclick="addPracticeChord()">+ Add</button>
-      </div>
+      <label>Tap a chord to add it to the sequence</label>
+      <div id="practice-chord-picker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;"></div>
     </div>
 
-    <div id="practice-sequence" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;min-height:36px;"></div>
+    <div class="form-group">
+      <label>Sequence (tap to remove)</label>
+      <div id="practice-sequence" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;min-height:36px;"></div>
+    </div>
 
     <div class="form-row">
       <div class="form-group">
@@ -293,9 +293,17 @@
       <button class="btn btn-secondary" onclick="clearPracticeSequence()">Clear Sequence</button>
     </div>
 
-    <div id="practice-display" style="display:none;text-align:center;padding:24px;background:var(--brown);border-radius:var(--radius);">
-      <div id="practice-current-chord" style="font-family:'DM Mono',monospace;font-size:3rem;font-weight:700;color:var(--accent-light);margin-bottom:6px;"></div>
-      <div id="practice-beat-dots" style="display:flex;justify-content:center;gap:8px;margin-bottom:16px;"></div>
+    <div id="practice-display" style="display:none;padding:24px;background:var(--brown);border-radius:var(--radius);">
+      <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div id="practice-current-chord" style="font-family:'DM Mono',monospace;font-size:3rem;font-weight:700;color:var(--accent-light);"></div>
+          <div id="practice-beat-dots" style="display:flex;justify-content:center;gap:8px;margin-top:10px;"></div>
+        </div>
+        <div style="text-align:center;opacity:0.7;">
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--cream);margin-bottom:4px;">Next chord</div>
+          <div id="practice-next-chord" style="font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--cream);"></div>
+        </div>
+      </div>
       <table class="string-table" id="practice-fingering-table" style="background:#fff;border-radius:8px;padding:8px;max-width:280px;margin:0 auto;">
         <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
         <tbody></tbody>
@@ -1275,23 +1283,22 @@ async function saveSong() {
 }
 
 // ── PRACTICE: CHORD CHANGE CYCLING ──
-let practiceSequence = []; // array of chord objects {id, name, fingering}
+let practiceSequence = []; // array of chord objects
 let practicing = false;
 let practiceTimer = null;
-let practiceBeatCount = 0;
+let practiceBeatCount = 0; // 1-based count of beats played in current chord (1..BPC)
 let practiceChordIndex = 0;
 let practiceAudioCtx = null;
 
 async function initPractice() {
   if (!allChords.length) allChords = await api('chords?select=*&order=name');
-  const sel = document.getElementById('practice-chord-select');
-  sel.innerHTML = allChords.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  const picker = document.getElementById('practice-chord-picker');
+  picker.innerHTML = allChords.map(c =>
+    `<span class="chord-chip" style="cursor:pointer;" onclick="addPracticeChordById(${c.id})">${c.name}</span>`).join('');
   renderPracticeSequence();
 }
 
-function addPracticeChord() {
-  const sel = document.getElementById('practice-chord-select');
-  const id = parseInt(sel.value);
+function addPracticeChordById(id) {
   const chord = allChords.find(c => c.id === id);
   if (!chord) return;
   practiceSequence.push(chord);
@@ -1311,12 +1318,9 @@ function clearPracticeSequence() {
 
 function renderPracticeSequence() {
   const el = document.getElementById('practice-sequence');
-  if (!practiceSequence.length) { el.innerHTML = '<span style="color:var(--brown-light);font-size:0.85rem;">No chords added yet.</span>'; return; }
+  if (!practiceSequence.length) { el.innerHTML = '<span style="color:var(--brown-light);font-size:0.85rem;">No chords added yet — tap chords above.</span>'; return; }
   el.innerHTML = practiceSequence.map((c, idx) => `
-    <span class="chord-chip" style="display:flex;align-items:center;gap:6px;">
-      ${c.name}
-      <i class="ti ti-x" style="cursor:pointer;" onclick="removePracticeChord(${idx})"></i>
-    </span>`).join('');
+    <span class="chord-chip" style="cursor:pointer;" onclick="removePracticeChord(${idx})" title="Tap to remove">${c.name}</span>`).join('');
 }
 
 function togglePractice() { practicing ? stopPractice() : startPractice(); }
@@ -1330,7 +1334,7 @@ function startPractice() {
   document.getElementById('practice-display').style.display = '';
   if (!practiceAudioCtx) practiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  showPracticeChord(0);
+  showPracticeChord(practiceChordIndex);
   scheduleNextBeat();
 }
 
@@ -1339,15 +1343,17 @@ function scheduleNextBeat() {
   const bpm = parseInt(document.getElementById('practice-bpm').value) || 60;
   const intervalMs = 60000 / bpm;
   practiceTimer = setTimeout(() => {
-    playClick();
-    practiceBeatCount++;
-    updateBeatDots();
     const bpc = parseInt(document.getElementById('practice-bpc').value) || 4;
-    if (practiceBeatCount >= bpc) {
-      practiceBeatCount = 0;
+
+    practiceBeatCount++;
+    if (practiceBeatCount > bpc) {
+      // Move to next chord now, beat 1 of new chord
       practiceChordIndex = (practiceChordIndex + 1) % practiceSequence.length;
+      practiceBeatCount = 1;
       showPracticeChord(practiceChordIndex);
     }
+    playClick();
+    updateBeatDots();
     scheduleNextBeat();
   }, intervalMs);
 }
@@ -1356,7 +1362,7 @@ function playClick() {
   if (!practiceAudioCtx) return;
   const osc = practiceAudioCtx.createOscillator();
   const gain = practiceAudioCtx.createGain();
-  osc.frequency.value = practiceBeatCount === 0 ? 1000 : 700;
+  osc.frequency.value = practiceBeatCount === 1 ? 1000 : 700;
   gain.gain.setValueAtTime(0.3, practiceAudioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, practiceAudioCtx.currentTime + 0.08);
   osc.connect(gain);
@@ -1369,6 +1375,11 @@ function showPracticeChord(idx) {
   const chord = practiceSequence[idx];
   if (!chord) return;
   document.getElementById('practice-current-chord').textContent = chord.name;
+
+  const nextIdx = (idx + 1) % practiceSequence.length;
+  const nextChord = practiceSequence[nextIdx];
+  document.getElementById('practice-next-chord').textContent = nextChord ? nextChord.name : '';
+
   const tbody = document.querySelector('#practice-fingering-table tbody');
   tbody.innerHTML = STRINGS.map(s => {
     const d = (chord.fingering || {})[s] || {};
@@ -1386,8 +1397,8 @@ function updateBeatDots() {
   const bpc = parseInt(document.getElementById('practice-bpc').value) || 4;
   const dotsEl = document.getElementById('practice-beat-dots');
   let html = '';
-  for (let i = 0; i < bpc; i++) {
-    const active = i < practiceBeatCount;
+  for (let i = 1; i <= bpc; i++) {
+    const active = i <= practiceBeatCount;
     html += `<span style="width:12px;height:12px;border-radius:50%;background:${active ? 'var(--accent-light)' : 'rgba(255,255,255,0.2)'};display:inline-block;"></span>`;
   }
   dotsEl.innerHTML = html;
