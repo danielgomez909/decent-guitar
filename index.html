@@ -262,14 +262,50 @@
 
 <!-- PRACTICE TAB -->
 <div id="tab-practice" class="tab-content">
-  <div class="practice-placeholder">
-    <i class="ti ti-clock"></i>
-    <h3>Practice Mode</h3>
-    <p>Daily practice sessions coming soon — chord changes, pattern drilling, timing, and finger exercises.</p>
+  <div class="section-header"><h2>Practice</h2></div>
+
+  <div class="card" style="padding:16px;">
+    <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Chord Change Cycling</h3>
+
+    <div class="form-group">
+      <label>Add chord to sequence</label>
+      <div style="display:flex;gap:8px;">
+        <select id="practice-chord-select" style="flex:1;"></select>
+        <button class="btn btn-primary btn-sm" onclick="addPracticeChord()">+ Add</button>
+      </div>
+    </div>
+
+    <div id="practice-sequence" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;min-height:36px;"></div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>BPM</label>
+        <input type="number" id="practice-bpm" value="60" min="20" max="240" />
+      </div>
+      <div class="form-group">
+        <label>Beats per Chord</label>
+        <input type="number" id="practice-bpc" value="4" min="1" max="16" />
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn btn-primary" id="practice-start-btn" onclick="togglePractice()"><i class="ti ti-player-play"></i> Start</button>
+      <button class="btn btn-secondary" onclick="clearPracticeSequence()">Clear Sequence</button>
+    </div>
+
+    <div id="practice-display" style="display:none;text-align:center;padding:24px;background:var(--brown);border-radius:var(--radius);">
+      <div id="practice-current-chord" style="font-family:'DM Mono',monospace;font-size:3rem;font-weight:700;color:var(--accent-light);margin-bottom:6px;"></div>
+      <div id="practice-beat-dots" style="display:flex;justify-content:center;gap:8px;margin-bottom:16px;"></div>
+      <table class="string-table" id="practice-fingering-table" style="background:#fff;border-radius:8px;padding:8px;max-width:280px;margin:0 auto;">
+        <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <!-- ADMIN TAB -->
+
 <div id="tab-admin" class="tab-content">
   <div class="subtab-bar">
     <button class="subtab-btn active" onclick="switchSubtab('admin-chords')">Chords</button>
@@ -412,6 +448,7 @@ function switchTab(name) {
   if (name === 'chords') loadChords();
   if (name === 'patterns') loadPatterns();
   if (name === 'admin') initAdmin();
+  if (name === 'practice') initPractice();
 }
 
 function switchSubtab(id) {
@@ -1237,7 +1274,133 @@ async function saveSong() {
   }
 }
 
-// ── INIT ──
+// ── PRACTICE: CHORD CHANGE CYCLING ──
+let practiceSequence = []; // array of chord objects {id, name, fingering}
+let practicing = false;
+let practiceTimer = null;
+let practiceBeatCount = 0;
+let practiceChordIndex = 0;
+let practiceAudioCtx = null;
+
+async function initPractice() {
+  if (!allChords.length) allChords = await api('chords?select=*&order=name');
+  const sel = document.getElementById('practice-chord-select');
+  sel.innerHTML = allChords.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  renderPracticeSequence();
+}
+
+function addPracticeChord() {
+  const sel = document.getElementById('practice-chord-select');
+  const id = parseInt(sel.value);
+  const chord = allChords.find(c => c.id === id);
+  if (!chord) return;
+  practiceSequence.push(chord);
+  renderPracticeSequence();
+}
+
+function removePracticeChord(idx) {
+  practiceSequence.splice(idx, 1);
+  renderPracticeSequence();
+}
+
+function clearPracticeSequence() {
+  practiceSequence = [];
+  renderPracticeSequence();
+  if (practicing) stopPractice();
+}
+
+function renderPracticeSequence() {
+  const el = document.getElementById('practice-sequence');
+  if (!practiceSequence.length) { el.innerHTML = '<span style="color:var(--brown-light);font-size:0.85rem;">No chords added yet.</span>'; return; }
+  el.innerHTML = practiceSequence.map((c, idx) => `
+    <span class="chord-chip" style="display:flex;align-items:center;gap:6px;">
+      ${c.name}
+      <i class="ti ti-x" style="cursor:pointer;" onclick="removePracticeChord(${idx})"></i>
+    </span>`).join('');
+}
+
+function togglePractice() { practicing ? stopPractice() : startPractice(); }
+
+function startPractice() {
+  if (!practiceSequence.length) { toast('Add at least one chord first'); return; }
+  practicing = true;
+  practiceBeatCount = 0;
+  practiceChordIndex = 0;
+  document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Stop';
+  document.getElementById('practice-display').style.display = '';
+  if (!practiceAudioCtx) practiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  showPracticeChord(0);
+  scheduleNextBeat();
+}
+
+function scheduleNextBeat() {
+  if (!practicing) return;
+  const bpm = parseInt(document.getElementById('practice-bpm').value) || 60;
+  const intervalMs = 60000 / bpm;
+  practiceTimer = setTimeout(() => {
+    playClick();
+    practiceBeatCount++;
+    updateBeatDots();
+    const bpc = parseInt(document.getElementById('practice-bpc').value) || 4;
+    if (practiceBeatCount >= bpc) {
+      practiceBeatCount = 0;
+      practiceChordIndex = (practiceChordIndex + 1) % practiceSequence.length;
+      showPracticeChord(practiceChordIndex);
+    }
+    scheduleNextBeat();
+  }, intervalMs);
+}
+
+function playClick() {
+  if (!practiceAudioCtx) return;
+  const osc = practiceAudioCtx.createOscillator();
+  const gain = practiceAudioCtx.createGain();
+  osc.frequency.value = practiceBeatCount === 0 ? 1000 : 700;
+  gain.gain.setValueAtTime(0.3, practiceAudioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, practiceAudioCtx.currentTime + 0.08);
+  osc.connect(gain);
+  gain.connect(practiceAudioCtx.destination);
+  osc.start();
+  osc.stop(practiceAudioCtx.currentTime + 0.08);
+}
+
+function showPracticeChord(idx) {
+  const chord = practiceSequence[idx];
+  if (!chord) return;
+  document.getElementById('practice-current-chord').textContent = chord.name;
+  const tbody = document.querySelector('#practice-fingering-table tbody');
+  tbody.innerHTML = STRINGS.map(s => {
+    const d = (chord.fingering || {})[s] || {};
+    return `<tr>
+      <td><span style="color:${STRING_COLORS[s]};font-weight:600">${STRING_LABELS[s]}</span></td>
+      <td>${d.plucked ? '✓' : '✕'}</td>
+      <td>${d.finger != null ? d.finger : '—'}</td>
+      <td>${d.fret != null ? d.fret : (d.plucked ? 'Open' : '—')}</td>
+    </tr>`;
+  }).join('');
+  updateBeatDots();
+}
+
+function updateBeatDots() {
+  const bpc = parseInt(document.getElementById('practice-bpc').value) || 4;
+  const dotsEl = document.getElementById('practice-beat-dots');
+  let html = '';
+  for (let i = 0; i < bpc; i++) {
+    const active = i < practiceBeatCount;
+    html += `<span style="width:12px;height:12px;border-radius:50%;background:${active ? 'var(--accent-light)' : 'rgba(255,255,255,0.2)'};display:inline-block;"></span>`;
+  }
+  dotsEl.innerHTML = html;
+}
+
+function stopPractice() {
+  practicing = false;
+  if (practiceTimer) clearTimeout(practiceTimer);
+  document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
+  document.getElementById('practice-display').style.display = 'none';
+}
+
+
 loadSongs();
 loadChords();
 </script>
