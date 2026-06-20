@@ -81,6 +81,9 @@
     .part-label:first-child { margin-top: 0; }
     .chord-row { white-space: pre; color: var(--accent-light); font-weight: 700; line-height: 1.5; min-height: 1.4em; }
     .lyric-row { white-space: pre; color: var(--cream); line-height: 1.6; margin-bottom: 10px; min-height: 1.4em; }
+    .lyrics-box.compact .part-label { margin-top: 10px; margin-bottom: 2px; }
+    .lyrics-box.compact .chord-row { line-height: 1.1; min-height: 1.1em; }
+    .lyrics-box.compact .lyric-row { line-height: 1.15; margin-bottom: 2px; min-height: 1.1em; }
     .line-pair { margin-bottom: 8px; }
 
     /* CHORD LIBRARY */
@@ -208,8 +211,14 @@
       <button class="scroll-btn" id="scroll-toggle-btn" onclick="toggleScroll()"><i class="ti ti-player-play"></i> Auto-scroll</button>
       <label style="font-size:0.8rem;color:var(--brown-light)">Speed:
         <input type="range" id="scroll-speed" min="1" max="10" value="3" style="width:80px;vertical-align:middle;" oninput="updateScrollSpeed()">
+        <span id="scroll-speed-value" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--brown);">3</span>
+      </label>
+      <label style="font-size:0.8rem;color:var(--brown-light);display:flex;align-items:center;gap:4px;cursor:pointer;">
+        <input type="checkbox" id="compact-toggle" onchange="toggleCompact()" style="width:auto;" />
+        Compact
       </label>
     </div>
+    <div id="scroll-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="lyrics-box" id="lyrics-box"></div>
     <div id="detail-source" style="margin-top:10px;font-size:0.8rem;"></div>
   </div>
@@ -528,8 +537,35 @@ function showSongList() {
   currentSong = null;
 }
 
-// ── AUTO-SCROLL (RAF-based, iPad-compatible) ──
-function toggleScroll() { scrolling ? stopScroll() : startScroll(); }
+// ── AUTO-SCROLL (RAF-based, iPad-compatible, with start delay) ──
+const SCROLL_START_DELAY = 10; // seconds
+let countdownInterval = null;
+
+function toggleScroll() {
+  if (scrolling || countdownInterval) { stopScroll(); } else { beginCountdown(); }
+}
+
+function beginCountdown() {
+  const btn = document.getElementById('scroll-toggle-btn');
+  const countdownEl = document.getElementById('scroll-countdown');
+  let remaining = SCROLL_START_DELAY;
+  btn.innerHTML = '<i class="ti ti-player-pause"></i> Cancel';
+  btn.classList.add('stop');
+  countdownEl.style.display = '';
+  countdownEl.textContent = `Starting in ${remaining}…`;
+
+  countdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      countdownEl.style.display = 'none';
+      startScroll();
+    } else {
+      countdownEl.textContent = `Starting in ${remaining}…`;
+    }
+  }, 1000);
+}
 
 function startScroll() {
   scrolling = true;
@@ -553,6 +589,8 @@ function startScroll() {
 function stopScroll() {
   scrolling = false;
   if (scrollRAF) cancelAnimationFrame(scrollRAF);
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  document.getElementById('scroll-countdown').style.display = 'none';
   const btn = document.getElementById('scroll-toggle-btn');
   btn.innerHTML = '<i class="ti ti-player-play"></i> Auto-scroll';
   btn.classList.remove('stop');
@@ -564,8 +602,17 @@ function getScrollSpeed() {
 }
 
 function updateScrollSpeed() {
+  const val = document.getElementById('scroll-speed').value;
+  document.getElementById('scroll-speed-value').textContent = val;
   if (scrolling) { stopScroll(); startScroll(); }
 }
+
+function toggleCompact() {
+  const box = document.getElementById('lyrics-box');
+  const checked = document.getElementById('compact-toggle').checked;
+  box.classList.toggle('compact', checked);
+}
+
 
 // ── CHORDS ──
 async function loadChords() {
