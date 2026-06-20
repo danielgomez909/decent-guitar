@@ -305,7 +305,8 @@
     </div>
     <div class="search-results" id="song-search-results"></div>
     <hr class="admin-divider" />
-    <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Add Song</h3>
+    <h3 style="font-family:'Lora',serif;margin-bottom:12px;" id="song-form-title">Add Song</h3>
+    <input type="hidden" id="song-edit-id" value="" />
     <div class="form-group">
       <label>Import from Ultimate Guitar text (optional)</label>
       <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:6px;">
@@ -335,7 +336,11 @@
       <div class="part-builder" id="parts-builder"></div>
       <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
     </div>
-    <button class="btn btn-primary" onclick="saveSong()">Save Song</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="save-song-btn" onclick="saveSong()">Save Song</button>
+      <button class="btn btn-secondary" id="song-cancel-btn" onclick="resetSongForm()" style="display:none">Cancel</button>
+      <button class="btn btn-danger" id="song-delete-btn" onclick="deleteSong()" style="display:none">Delete Song</button>
+    </div>
   </div>
 </div>
 
@@ -704,9 +709,8 @@ function searchPatterns() {
 
 function searchSongs() {
   const q = document.getElementById('song-search-input').value.toLowerCase();
-  const results = allSongs.filter(s => s.title.toLowerCase().includes(q) || (s.artist||'').toLowerCase().includes(q));
+  const results = q ? allSongs.filter(s => s.title.toLowerCase().includes(q) || (s.artist||'').toLowerCase().includes(q)) : allSongs;
   const el = document.getElementById('song-search-results');
-  if (!q) { el.innerHTML = ''; return; }
   if (!results.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light)">No songs found.</p>'; return; }
   el.innerHTML = results.map(s => `
     <div class="search-result-item">
@@ -715,7 +719,7 @@ function searchSongs() {
         ${s.artist ? `<div style="font-size:0.8rem;color:var(--brown-light)">${s.artist}</div>` : ''}
       </div>
       <div class="search-result-actions">
-        <button class="btn btn-secondary btn-sm" onclick="alert('Song edit coming soon')">Edit</button>
+        <button class="btn btn-secondary btn-sm" onclick="editSong('${s.id}')">Edit</button>
       </div>
     </div>`).join('');
 }
@@ -1042,11 +1046,84 @@ function renderPartsBuilder() {
 
 function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
 
+// ── SONG EDIT / DELETE ──
+async function editSong(id) {
+  try {
+    const [song, partsOrder] = await Promise.all([
+      api(`songs?id=eq.${id}&select=*`),
+      api(`song_parts_order?song_id=eq.${id}&select=*,song_part_strumming(strumming_pattern_id)&order=part_order`)
+    ]);
+    const s = song[0];
+    if (!s) { toast('Song not found'); return; }
+
+    let lyrics = [];
+    if (partsOrder.length) {
+      const spoIds = partsOrder.map(p => p.id).join(',');
+      lyrics = await api(`song_lyrics?song_parts_order_id=in.(${spoIds})&order=song_parts_order_id,line_order`);
+    }
+
+    // Populate top-level fields
+    document.getElementById('song-edit-id').value = s.id;
+    document.getElementById('song-title').value = s.title || '';
+    document.getElementById('song-artist').value = s.artist || '';
+    document.getElementById('song-capo').value = s.capo_fret != null ? s.capo_fret : '';
+    document.getElementById('song-source').value = s.source_url || '';
+    document.getElementById('song-notes-input').value = s.notes || '';
+    document.getElementById('song-default-pattern').value = s.default_strumming_pattern_id || '';
+    document.getElementById('song-form-title').textContent = `Edit Song: ${s.title}`;
+    document.getElementById('song-cancel-btn').style.display = '';
+    document.getElementById('song-delete-btn').style.display = '';
+
+    // Rebuild partRows from DB structure
+    partRows = partsOrder.map(spo => ({
+      id: Date.now() + Math.random(),
+      _spoId: spo.id, // track original row for reference (not used on save, full rewrite)
+      partId: spo.part_id,
+      strummingId: spo.song_part_strumming?.[0]?.strumming_pattern_id || '',
+      lines: lyrics
+        .filter(l => l.song_parts_order_id === spo.id)
+        .sort((a,b) => a.line_order - b.line_order)
+        .map(l => ({ id: Date.now() + Math.random(), type: l.line_type, text: l.lyric_text }))
+    }));
+    renderPartsBuilder();
+
+    document.getElementById('song-search-input').value = '';
+    searchSongs();
+    document.getElementById('song-form-title').scrollIntoView({ behavior: 'smooth' });
+  } catch(e) { console.error(e); toast('Error loading song for edit: ' + e.message); }
+}
+
+function resetSongForm() {
+  document.getElementById('song-edit-id').value = '';
+  ['song-title','song-artist','song-capo','song-source','song-notes-input'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('song-default-pattern').value = '';
+  document.getElementById('song-form-title').textContent = 'Add Song';
+  document.getElementById('song-cancel-btn').style.display = 'none';
+  document.getElementById('song-delete-btn').style.display = 'none';
+  partRows = [];
+  addPartRow();
+}
+
+async function deleteSong() {
+  const id = document.getElementById('song-edit-id').value;
+  if (!id) return;
+  const title = document.getElementById('song-title').value;
+  if (!confirm(`Delete "${title}"? This will remove all its parts and lyrics. This cannot be undone.`)) return;
+  try {
+    await api(`songs?id=eq.${id}`, 'DELETE');
+    toast(`"${title}" deleted`);
+    resetSongForm();
+    allSongs = await api('songs?select=*,strumming_patterns(notation)&order=title');
+    searchSongs();
+  } catch(e) { console.error(e); toast('Error deleting: ' + e.message); }
+}
+
 async function saveSong() {
   const title = document.getElementById('song-title').value.trim();
   if (!title) { toast('Title required'); return; }
   const capoVal = document.getElementById('song-capo').value;
   const defaultPatternVal = document.getElementById('song-default-pattern').value;
+  const editId = document.getElementById('song-edit-id').value;
   const songPayload = {
     title,
     artist: document.getElementById('song-artist').value.trim() || null,
@@ -1055,13 +1132,27 @@ async function saveSong() {
     notes: document.getElementById('song-notes-input').value.trim() || null,
     default_strumming_pattern_id: defaultPatternVal ? parseInt(defaultPatternVal) : null
   };
+  const btn = document.getElementById('save-song-btn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;"></i> Saving…';
   try {
-    const [newSong] = await api('songs', 'POST', songPayload);
+    let songId;
+    if (editId) {
+      await api(`songs?id=eq.${editId}`, 'PATCH', songPayload);
+      songId = editId;
+      // Clear existing nested structure — cascade delete handles parts/lyrics/strumming
+      await api(`song_parts_order?song_id=eq.${editId}`, 'DELETE');
+    } else {
+      const [newSong] = await api('songs', 'POST', songPayload);
+      songId = newSong.id;
+    }
+
     let partOrderCounter = 1;
     for (const row of partRows) {
       if (!row.partId) continue;
       const [spo] = await api('song_parts_order', 'POST', {
-        song_id: newSong.id, part_id: parseInt(row.partId), part_order: partOrderCounter++
+        song_id: songId, part_id: parseInt(row.partId), part_order: partOrderCounter++
       });
       if (row.strummingId) {
         await api('song_part_strumming', 'POST', {
@@ -1079,13 +1170,14 @@ async function saveSong() {
         });
       }
     }
-    toast(`"${title}" saved!`);
-    ['song-title','song-artist','song-capo','song-source','song-notes-input'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('song-default-pattern').value = '';
-    partRows = [];
-    addPartRow();
+    toast(editId ? `"${title}" updated!` : `"${title}" saved!`);
+    resetSongForm();
     allSongs = await api('songs?select=*,strumming_patterns(notation)&order=title');
   } catch(e) { console.error(e); toast('Error: ' + e.message); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
 }
 
 // ── INIT ──
