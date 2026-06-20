@@ -156,24 +156,34 @@
 
   <h2>Feature Backlog</h2>
 
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Practice tab — chord change cycling, pattern drilling, finger exercises, metronome/timing</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Practice tab — strumming pattern drilling, song practice mode, finger exercises, standalone metronome/timing (chord change cycling completed in v1.4)</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Visual chord diagram renderer (from fingering jsonb → SVG fretboard grid)</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song edit / delete in Admin</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord edit / delete in Admin</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Strumming pattern edit / delete in Admin</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song versioning — version number per song (same song, multiple variations)</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song difficulty field — Absolute Beginner, Beginner, Intermediate, Advanced</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Third line type: "comment" — italicized note-only line, distinct styling from chord/lyric</div>
   <div class="backlog-item"><span class="badge tag-feature">Feature</span> Insert a line mid-part during admin entry (drag-and-drop or insert-above/below control)</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord progressions — new table (notation e.g. I-IV-V), derive actual chords from any home/starting chord via scale-degree math. New subtab in Admin and in Chords tab.</div>
   <div class="backlog-item"><span class="badge tag-ux">UX</span> Chord chips on song detail page — clickable/hover to show fingering (currently only works on Chords tab)</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Numeric speed value displayed next to auto-scroll slider</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Auto-scroll start delay (~10 sec) with visible countdown before scrolling begins</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Compact lyrics display mode — toggle for tighter line spacing on song detail page</div>
   <div class="backlog-item"><span class="badge tag-ux">UX</span> Part-level strumming pattern display in song detail view</div>
   <div class="backlog-item"><span class="badge tag-ux">UX</span> iOS home screen icon — currently shows generic "D", needs custom PNG icon set</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Visual "saving…" indicator/spinner on Save Song button for large songs</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Admin Chords and Patterns subtabs show existing records by default (Songs subtab already does this as of v1.4)</div>
+  <div class="backlog-item"><span class="badge tag-ux">UX</span> Clear button next to Parse Text on Add Song import box, for back-to-back imports</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> Supabase RLS + authentication</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> UG text import refinement — broader chord-pattern coverage, edge case handling</div>
+
+  <h2>Practice Module — Chord Change Cycling</h2>
+  <p>The Practice tab's first module supports building and drilling a chord sequence at a set tempo.</p>
+  <ul style="padding-left:20px;font-size:0.9rem;line-height:1.9;">
+    <li><strong>Sequence builder:</strong> tap any chord from your library to add it to the sequence (repeats allowed, unbounded length). Tap a chord in the sequence to remove it.</li>
+    <li><strong>BPM</strong> (default 60) and <strong>Beats per Chord</strong> (default 4) — both user-adjustable.</li>
+    <li><strong>Metronome:</strong> Web Audio API click — higher pitch on beat 1 of each chord, lower pitch on beats 2+. Audio is silent if the device is hardware-muted (e.g. iPad side switch) — this is a device-level setting, not app-controllable.</li>
+    <li><strong>Display:</strong> current chord name (large) + full string-by-string fingering table, beat-progress dots (fill 1→BPC across the current chord's full duration), and a "Next chord" preview shown throughout the current chord's measure — switching only when the chord actually changes, not pre-emptively on the last beat.</li>
+  </ul>
+  <p>This is a UI-only module — no database table writes; it reads from the existing <code>chords</code> table.</p>
 
   <h2>Ultimate Guitar Text Import</h2>
   <p>Admin → Songs includes a paste-in text importer. Paste UG-style song text (title/artist header, Capo line, then <code>[Part Name]</code> markers with chord and lyric lines below each) and click Parse Text. The parser:</p>
@@ -192,6 +202,7 @@
   <div class="version-entry"><span class="version-date">June 2026 — v1.1</span> Fixed song detail load error (Supabase join-filter syntax). Added Admin subtabs (Chords/Patterns/Songs) with search, edit, and copy-as-new. Rebuilt auto-scroll using requestAnimationFrame for iPad compatibility.</div>
   <div class="version-entry"><span class="version-date">June 2026 — v1.2</span> Redesigned song_lyrics model: changed from inline [Chord] markers to a flat line-based model (line_type: chords/lyrics, ordered by line_order, no pairing/grouping). Chord lines render in green Courier above lyric lines on the song detail page, matching Ultimate Guitar's chord-view style. Admin parts builder rebuilt with per-line C/L toggle.</div>
   <div class="version-entry"><span class="version-date">June 2026 — v1.3</span> Added Ultimate Guitar text import (paste-in parser) to Admin → Songs. Lowered auto-scroll speed floor for finer control at slow speeds.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.4</span> Song edit/delete in Admin with full nested structure reload (parts, lines, strumming) and cascade delete. Admin Songs subtab now lists all songs by default. Auto-scroll enhancements: numeric speed display, configurable start delay (1–20s, default 10s) with visible countdown, further-lowered speed floor. Compact lyrics display mode toggle. Built first Practice module — Chord Change Cycling with tap-to-build sequence, BPM/BPC controls, audible metronome, and live chord+fingering display with next-chord preview.</div>
 </div>
 </body>
 </html>
