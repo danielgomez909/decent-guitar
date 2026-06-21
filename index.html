@@ -186,7 +186,6 @@
 <div class="topbar">
   <span style="font-size:1.4rem">🎸</span>
   <h1>Decent Guitar</h1>
-  <button onclick="openReferenceModal()" class="info-btn" title="Project reference" style="background:none;">ⓘ</button>
 </div>
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('songs')"><i class="ti ti-music"></i>Songs</button>
@@ -194,6 +193,7 @@
   <button class="tab-btn" onclick="switchTab('patterns')"><i class="ti ti-wave-sine"></i>Patterns</button>
   <button class="tab-btn" onclick="switchTab('practice')"><i class="ti ti-clock"></i>Practice</button>
   <button class="tab-btn" onclick="switchTab('admin')"><i class="ti ti-settings"></i>Admin</button>
+  <button class="tab-btn" onclick="switchTab('reference')"><i class="ti ti-info-circle"></i>Reference</button>
 </div>
 
 <!-- SONGS TAB -->
@@ -555,18 +555,9 @@
   </div>
 </div>
 
-<!-- Reference Doc Modal -->
-<div class="modal-overlay" id="reference-modal">
-  <div class="modal" style="max-width:90vw;width:700px;height:85vh;padding:0;overflow:hidden;display:flex;flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--cream-dark);flex-shrink:0;">
-      <h3 style="margin:0;">Project Reference</h3>
-      <div style="display:flex;gap:8px;">
-        <a href="./decent-guitar-reference.html" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">Open in new tab</a>
-        <button class="btn btn-secondary btn-sm" onclick="closeModal('reference-modal')">Close</button>
-      </div>
-    </div>
-    <iframe id="reference-iframe" src="" style="border:none;width:100%;height:100%;flex:1 1 auto;"></iframe>
-  </div>
+<!-- REFERENCE TAB -->
+<div id="tab-reference" class="tab-content" style="max-width:100%;padding:0;">
+  <iframe id="reference-iframe" src="" style="border:none;width:100%;height:calc(100vh - 110px);display:block;"></iframe>
 </div>
 
 <!-- Toast -->
@@ -611,13 +602,17 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
-  const idx = ['songs','chords','patterns','practice','admin'].indexOf(name);
+  const idx = ['songs','chords','patterns','practice','admin','reference'].indexOf(name);
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
   if (name === 'songs') loadSongs();
   if (name === 'chords') loadChords();
   if (name === 'patterns') loadPatterns();
   if (name === 'admin') initAdmin();
   if (name === 'practice') initPractice();
+  if (name === 'reference') {
+    const iframe = document.getElementById('reference-iframe');
+    if (!iframe.src) iframe.src = './decent-guitar-reference.html';
+  }
 }
 
 function switchSubtab(id) {
@@ -903,11 +898,6 @@ function showChordModal(c) {
 
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-function openReferenceModal() {
-  const iframe = document.getElementById('reference-iframe');
-  if (!iframe.src) iframe.src = './decent-guitar-reference.html';
-  document.getElementById('reference-modal').classList.add('active');
-}
 
 // ── PATTERNS ──
 async function loadPatterns() {
