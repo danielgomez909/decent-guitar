@@ -186,7 +186,7 @@
 <div class="topbar">
   <span style="font-size:1.4rem">🎸</span>
   <h1>Decent Guitar</h1>
-  <a href="./decent-guitar-reference.html" target="_blank" class="info-btn" title="Project reference">ⓘ</a>
+  <button onclick="openReferenceModal()" class="info-btn" title="Project reference" style="background:none;">ⓘ</button>
 </div>
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('songs')"><i class="ti ti-music"></i>Songs</button>
@@ -555,6 +555,17 @@
   </div>
 </div>
 
+<!-- Reference Doc Modal -->
+<div class="modal-overlay" id="reference-modal">
+  <div class="modal" style="max-width:90vw;width:700px;max-height:90vh;padding:0;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--cream-dark);flex-shrink:0;">
+      <h3 style="margin:0;">Project Reference</h3>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('reference-modal')">Close</button>
+    </div>
+    <iframe id="reference-iframe" src="" style="flex:1;border:none;width:100%;min-height:70vh;"></iframe>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -888,6 +899,12 @@ function showChordModal(c) {
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function openReferenceModal() {
+  const iframe = document.getElementById('reference-iframe');
+  if (!iframe.src) iframe.src = './decent-guitar-reference.html';
+  document.getElementById('reference-modal').classList.add('active');
+}
 
 // ── PATTERNS ──
 async function loadPatterns() {
