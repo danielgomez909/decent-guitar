@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Decent Guitar</title>
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="./icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Decent Guitar" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
@@ -167,6 +171,7 @@
 
     /* TOAST */
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--brown); color: var(--cream); padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; z-index: 300; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .toast.show { opacity: 1; }
 
     /* EMPTY */
@@ -293,6 +298,8 @@
       <button class="btn btn-secondary" onclick="clearPracticeSequence()">Clear Sequence</button>
     </div>
 
+    <div id="practice-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
+
     <div id="practice-display" style="display:none;padding:24px;background:var(--brown);border-radius:var(--radius);">
       <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:16px;">
         <div style="text-align:center;">
@@ -308,6 +315,30 @@
         <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
         <tbody></tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;margin-top:16px;">
+    <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Strumming Pattern Drill</h3>
+
+    <div class="form-group">
+      <label>Tap a pattern to select it</label>
+      <div id="strum-pattern-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="form-group">
+      <label>BPM</label>
+      <input type="number" id="strum-bpm" value="60" min="20" max="240" style="max-width:140px;" />
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn btn-primary" id="strum-start-btn" onclick="toggleStrumDrill()"><i class="ti ti-player-play"></i> Start</button>
+    </div>
+
+    <div id="strum-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
+
+    <div id="strum-display" style="display:none;padding:28px 16px;background:var(--brown);border-radius:var(--radius);text-align:center;">
+      <div id="strum-slots" style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;"></div>
     </div>
   </div>
 </div>
@@ -378,6 +409,7 @@
       </p>
       <textarea id="ug-text-input" placeholder="Mad World Chords by Gary Jules&#10;Capo: 1st fret&#10;...&#10;&#10;[Intro]&#10;Em  A&#10;Em  A&#10;&#10;[Verse 1]&#10;Em              G&#10;  All around me are familiar faces&#10;..." style="min-height:160px;font-family:'Courier New',monospace;font-size:0.82rem;"></textarea>
       <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="handleTextImport()">Parse Text</button>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="clearImportText()">Clear</button>
       <div id="import-status" style="font-size:0.82rem;color:var(--brown-light);margin-top:6px;"></div>
     </div>
     <div class="form-row">
@@ -993,6 +1025,11 @@ function handleTextImport() {
   }
 }
 
+function clearImportText() {
+  document.getElementById('ug-text-input').value = '';
+  document.getElementById('import-status').textContent = '';
+}
+
 function isChordLine(text) {
   const trimmed = text.trim();
   if (!trimmed) return false;
@@ -1289,13 +1326,19 @@ let practiceTimer = null;
 let practiceBeatCount = 0; // 1-based count of beats played in current chord (1..BPC)
 let practiceChordIndex = 0;
 let practiceAudioCtx = null;
+let practiceCountdownInterval = null;
 
 async function initPractice() {
   if (!allChords.length) allChords = await api('chords?select=*&order=name');
+  if (!allPatterns.length) allPatterns = await api('strumming_patterns?select=*&order=notation');
   const picker = document.getElementById('practice-chord-picker');
   picker.innerHTML = allChords.map(c =>
     `<span class="chord-chip" style="cursor:pointer;" onclick="addPracticeChordById(${c.id})">${c.name}</span>`).join('');
   renderPracticeSequence();
+
+  const strumPicker = document.getElementById('strum-pattern-picker');
+  strumPicker.innerHTML = allPatterns.map(p =>
+    `<span class="chord-chip" style="cursor:pointer;font-family:'DM Mono',monospace;" onclick="selectStrumPattern(${p.id})">${p.notation}</span>`).join('');
 }
 
 function addPracticeChordById(id) {
@@ -1323,19 +1366,37 @@ function renderPracticeSequence() {
     <span class="chord-chip" style="cursor:pointer;" onclick="removePracticeChord(${idx})" title="Tap to remove">${c.name}</span>`).join('');
 }
 
-function togglePractice() { practicing ? stopPractice() : startPractice(); }
+function togglePractice() { (practicing || practiceCountdownInterval) ? stopPractice() : startPractice(); }
 
 function startPractice() {
   if (!practiceSequence.length) { toast('Add at least one chord first'); return; }
-  practicing = true;
   practiceBeatCount = 0;
   practiceChordIndex = 0;
-  document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Stop';
+  document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Cancel';
   document.getElementById('practice-display').style.display = '';
   if (!practiceAudioCtx) practiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+  // Show the first chord immediately so the user knows what's coming, but hold off on clicks/dots
   showPracticeChord(practiceChordIndex);
-  scheduleNextBeat();
+  document.getElementById('practice-beat-dots').innerHTML = '';
+
+  let remaining = 10;
+  const countdownEl = document.getElementById('practice-countdown');
+  countdownEl.style.display = '';
+  countdownEl.textContent = `Starting in ${remaining}…`;
+  practiceCountdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(practiceCountdownInterval);
+      practiceCountdownInterval = null;
+      countdownEl.style.display = 'none';
+      practicing = true;
+      document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Stop';
+      scheduleNextBeat();
+    } else {
+      countdownEl.textContent = `Starting in ${remaining}…`;
+    }
+  }, 1000);
 }
 
 function scheduleNextBeat() {
@@ -1407,8 +1468,104 @@ function updateBeatDots() {
 function stopPractice() {
   practicing = false;
   if (practiceTimer) clearTimeout(practiceTimer);
+  if (practiceCountdownInterval) { clearInterval(practiceCountdownInterval); practiceCountdownInterval = null; }
+  document.getElementById('practice-countdown').style.display = 'none';
   document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
   document.getElementById('practice-display').style.display = 'none';
+}
+
+// ── PRACTICE: STRUMMING PATTERN DRILL ──
+let strumPattern = null;
+let strumming = false;
+let strumTimer = null;
+let strumCountdownInterval = null;
+let strumSlotIndex = 0;
+let strumAudioCtx = null;
+let strumSlots = []; // array of 'D' | 'U' | ' '
+
+function selectStrumPattern(id) {
+  const p = allPatterns.find(x => x.id === id);
+  if (!p) return;
+  strumPattern = p;
+  strumSlots = p.notation.split('');
+  renderStrumSlots(-1);
+}
+
+function renderStrumSlots(activeIdx) {
+  const el = document.getElementById('strum-slots');
+  if (!strumSlots.length) { el.innerHTML = ''; return; }
+  el.innerHTML = strumSlots.map((ch, idx) => {
+    const isActive = idx === activeIdx;
+    const isRest = ch.trim() === '';
+    const color = isRest ? 'rgba(255,255,255,0.25)' : (ch === 'D' ? 'var(--accent-light)' : 'var(--green-light)');
+    const scale = isActive ? 'transform:scale(1.3);' : '';
+    const opacity = isActive ? '1' : '0.55';
+    return `<span style="font-family:'DM Mono',monospace;font-size:2.6rem;font-weight:700;color:${color};display:inline-block;min-width:36px;${scale}opacity:${opacity};transition:transform .1s,opacity .1s;">${isRest ? '·' : ch}</span>`;
+  }).join('');
+}
+
+function toggleStrumDrill() { (strumming || strumCountdownInterval) ? stopStrumDrill() : startStrumDrill(); }
+
+function startStrumDrill() {
+  if (!strumPattern) { toast('Select a strumming pattern first'); return; }
+  document.getElementById('strum-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Cancel';
+  document.getElementById('strum-display').style.display = '';
+  if (!strumAudioCtx) strumAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  strumSlotIndex = -1;
+  renderStrumSlots(-1);
+
+  let remaining = 10;
+  const countdownEl = document.getElementById('strum-countdown');
+  countdownEl.style.display = '';
+  countdownEl.textContent = `Starting in ${remaining}…`;
+  strumCountdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(strumCountdownInterval);
+      strumCountdownInterval = null;
+      countdownEl.style.display = 'none';
+      strumming = true;
+      document.getElementById('strum-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Stop';
+      scheduleNextStrumSlot();
+    } else {
+      countdownEl.textContent = `Starting in ${remaining}…`;
+    }
+  }, 1000);
+}
+
+function scheduleNextStrumSlot() {
+  if (!strumming) return;
+  const bpm = parseInt(document.getElementById('strum-bpm').value) || 60;
+  const slotMs = 30000 / bpm; // 8th note = half a quarter-note beat
+  strumTimer = setTimeout(() => {
+    strumSlotIndex = (strumSlotIndex + 1) % strumSlots.length;
+    renderStrumSlots(strumSlotIndex);
+    playStrumClick(strumSlots[strumSlotIndex]);
+    scheduleNextStrumSlot();
+  }, slotMs);
+}
+
+function playStrumClick(ch) {
+  if (!strumAudioCtx || ch.trim() === '') return; // rest = silence
+  const osc = strumAudioCtx.createOscillator();
+  const gain = strumAudioCtx.createGain();
+  osc.frequency.value = ch === 'D' ? 900 : 1300;
+  gain.gain.setValueAtTime(0.25, strumAudioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, strumAudioCtx.currentTime + 0.07);
+  osc.connect(gain);
+  gain.connect(strumAudioCtx.destination);
+  osc.start();
+  osc.stop(strumAudioCtx.currentTime + 0.07);
+}
+
+function stopStrumDrill() {
+  strumming = false;
+  if (strumTimer) clearTimeout(strumTimer);
+  if (strumCountdownInterval) { clearInterval(strumCountdownInterval); strumCountdownInterval = null; }
+  document.getElementById('strum-countdown').style.display = 'none';
+  document.getElementById('strum-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
+  document.getElementById('strum-display').style.display = 'none';
 }
 
 
