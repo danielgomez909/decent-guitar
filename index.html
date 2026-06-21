@@ -557,12 +557,15 @@
 
 <!-- Reference Doc Modal -->
 <div class="modal-overlay" id="reference-modal">
-  <div class="modal" style="max-width:90vw;width:700px;max-height:90vh;padding:0;display:flex;flex-direction:column;">
+  <div class="modal" style="max-width:90vw;width:700px;height:85vh;padding:0;overflow:hidden;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--cream-dark);flex-shrink:0;">
       <h3 style="margin:0;">Project Reference</h3>
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('reference-modal')">Close</button>
+      <div style="display:flex;gap:8px;">
+        <a href="./decent-guitar-reference.html" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;">Open in new tab</a>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('reference-modal')">Close</button>
+      </div>
     </div>
-    <iframe id="reference-iframe" src="" style="flex:1;border:none;width:100%;min-height:70vh;"></iframe>
+    <iframe id="reference-iframe" src="" style="border:none;width:100%;height:100%;flex:1 1 auto;"></iframe>
   </div>
 </div>
 
