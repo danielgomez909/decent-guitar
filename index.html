@@ -273,6 +273,9 @@
   <div class="subtab-bar">
     <button class="subtab-btn active" onclick="switchPracticeSubtab('practice-chords')">Chord Cycling</button>
     <button class="subtab-btn" onclick="switchPracticeSubtab('practice-strum')">Strumming Drill</button>
+    <button class="subtab-btn" onclick="switchPracticeSubtab('practice-song')">Practice Song</button>
+    <button class="subtab-btn" onclick="switchPracticeSubtab('practice-fingering')">Fingering</button>
+    <button class="subtab-btn" onclick="switchPracticeSubtab('practice-timing')">Timing</button>
   </div>
 
   <!-- CHORD CHANGE CYCLING -->
@@ -378,6 +381,78 @@
 
       <div id="strum-display" style="display:none;padding:28px 16px;background:var(--brown);border-radius:var(--radius);text-align:center;">
         <div id="strum-slots" style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRACTICE SONG (link-out) -->
+  <div id="practice-song" class="subtab-content">
+    <div class="card" style="padding:32px;text-align:center;">
+      <i class="ti ti-music" style="font-size:2.5rem;color:var(--brown-light);margin-bottom:12px;display:block;"></i>
+      <h3 style="font-family:'Lora',serif;margin-bottom:8px;">Practice a Song</h3>
+      <p style="color:var(--brown-light);font-size:0.9rem;margin-bottom:18px;">Everything you need to practice a song — chords, lyrics, auto-scroll — is in the Songs tab.</p>
+      <button class="btn btn-primary" onclick="switchTab('songs')"><i class="ti ti-arrow-right"></i> Go to Songs</button>
+    </div>
+  </div>
+
+  <!-- FINGERING -->
+  <div id="practice-fingering" class="subtab-content">
+    <div class="card" style="padding:32px;text-align:center;">
+      <i class="ti ti-hand-finger" style="font-size:2.5rem;color:var(--brown-light);margin-bottom:12px;display:block;"></i>
+      <h3 style="font-family:'Lora',serif;margin-bottom:8px;">Finger Exercise: Spider Walk</h3>
+      <p style="color:var(--brown-light);font-size:0.95rem;max-width:420px;margin:0 auto;">
+        Walk fingers 1→2→3→4 across each string from low E to high E, starting at the 5th fret and moving up to the 8th fret.
+      </p>
+    </div>
+  </div>
+
+  <!-- TIMING -->
+  <div id="practice-timing" class="subtab-content">
+    <div class="card" style="padding:16px;">
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="form-group">
+          <label>BPM</label>
+          <input type="number" id="timing-bpm" value="60" min="20" max="240" />
+        </div>
+        <div class="form-group">
+          <label>Duration</label>
+          <select id="timing-duration-select">
+            <option value="5">5s</option><option value="10">10s</option><option value="15">15s</option>
+            <option value="20">20s</option><option value="25">25s</option><option value="30" selected>30s</option>
+            <option value="35">35s</option><option value="40">40s</option><option value="45">45s</option>
+            <option value="50">50s</option><option value="55">55s</option><option value="60">60s</option>
+            <option value="65">65s</option><option value="70">70s</option><option value="75">75s</option>
+            <option value="80">80s</option><option value="85">85s</option><option value="90">90s</option>
+            <option value="95">95s</option><option value="100">100s</option><option value="105">105s</option>
+            <option value="110">110s</option><option value="115">115s</option><option value="120">120s</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Start Delay</label>
+          <select id="timing-delay-select">
+            <option value="1">1s</option><option value="2">2s</option><option value="3">3s</option>
+            <option value="4">4s</option><option value="5">5s</option><option value="6">6s</option>
+            <option value="7">7s</option><option value="8">8s</option><option value="9">9s</option>
+            <option value="10" selected>10s</option><option value="11">11s</option><option value="12">12s</option>
+            <option value="13">13s</option><option value="14">14s</option><option value="15">15s</option>
+            <option value="16">16s</option><option value="17">17s</option><option value="18">18s</option>
+            <option value="19">19s</option><option value="20">20s</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-primary" id="timing-start-btn" onclick="toggleTiming()"><i class="ti ti-player-play"></i> Start</button>
+      </div>
+
+      <div id="timing-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
+
+      <div id="timing-display" style="display:none;padding:28px 16px;background:var(--brown);border-radius:var(--radius);text-align:center;">
+        <div style="display:flex;justify-content:center;align-items:center;gap:60px;margin-bottom:16px;">
+          <span id="timing-dot-left" style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.2);display:inline-block;transition:background .1s;"></span>
+          <span id="timing-dot-right" style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.2);display:inline-block;transition:background .1s;"></span>
+        </div>
+        <div id="timing-remaining" style="font-family:'DM Mono',monospace;font-size:2rem;font-weight:700;color:var(--cream);"></div>
       </div>
     </div>
   </div>
@@ -543,7 +618,7 @@ function switchPracticeSubtab(id) {
   document.querySelectorAll('#tab-practice .subtab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('#tab-practice .subtab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const idx = ['practice-chords','practice-strum'].indexOf(id);
+  const idx = ['practice-chords','practice-strum','practice-song','practice-fingering','practice-timing'].indexOf(id);
   document.querySelectorAll('#tab-practice .subtab-btn')[idx].classList.add('active');
 }
 
@@ -1639,6 +1714,101 @@ function stopStrumDrill() {
   document.getElementById('strum-progress').style.display = 'none';
   document.getElementById('strum-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
   document.getElementById('strum-display').style.display = 'none';
+}
+
+// ── PRACTICE: TIMING (METRONOME) ──
+let timingRunning = false;
+let timingTimer = null;
+let timingCountdownInterval = null;
+let timingAudioCtx = null;
+let timingPendulumLeft = true;
+let timingRemainingSec = 0;
+
+function toggleTiming() { (timingRunning || timingCountdownInterval) ? stopTiming() : startTiming(); }
+
+function startTiming() {
+  document.getElementById('timing-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Cancel';
+  document.getElementById('timing-display').style.display = '';
+  if (!timingAudioCtx) timingAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  document.getElementById('timing-dot-left').style.background = 'rgba(255,255,255,0.2)';
+  document.getElementById('timing-dot-right').style.background = 'rgba(255,255,255,0.2)';
+  document.getElementById('timing-remaining').textContent = '';
+
+  let remaining = parseInt(document.getElementById('timing-delay-select').value) || 10;
+  const countdownEl = document.getElementById('timing-countdown');
+  countdownEl.style.display = '';
+  countdownEl.textContent = `Starting in ${remaining}…`;
+  timingCountdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(timingCountdownInterval);
+      timingCountdownInterval = null;
+      countdownEl.style.display = 'none';
+      timingRunning = true;
+      timingPendulumLeft = true;
+      timingRemainingSec = parseInt(document.getElementById('timing-duration-select').value) || 30;
+      document.getElementById('timing-remaining').textContent = formatTimingRemaining(timingRemainingSec);
+      document.getElementById('timing-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Stop';
+      scheduleNextTimingBeat();
+    } else {
+      countdownEl.textContent = `Starting in ${remaining}…`;
+    }
+  }, 1000);
+}
+
+function scheduleNextTimingBeat() {
+  if (!timingRunning) return;
+  const bpm = parseInt(document.getElementById('timing-bpm').value) || 60;
+  const intervalMs = 60000 / bpm;
+  timingTimer = setTimeout(() => {
+    playTimingClick();
+    pulseTimingDot();
+    timingRemainingSec -= intervalMs / 1000;
+    document.getElementById('timing-remaining').textContent = formatTimingRemaining(Math.max(0, Math.round(timingRemainingSec)));
+    if (timingRemainingSec <= 0) {
+      stopTiming();
+      toast('Timing practice complete!');
+      return;
+    }
+    scheduleNextTimingBeat();
+  }, intervalMs);
+}
+
+function pulseTimingDot() {
+  const leftEl = document.getElementById('timing-dot-left');
+  const rightEl = document.getElementById('timing-dot-right');
+  leftEl.style.background = timingPendulumLeft ? 'var(--accent-light)' : 'rgba(255,255,255,0.2)';
+  rightEl.style.background = !timingPendulumLeft ? 'var(--accent-light)' : 'rgba(255,255,255,0.2)';
+  timingPendulumLeft = !timingPendulumLeft;
+}
+
+function playTimingClick() {
+  if (!timingAudioCtx) return;
+  const osc = timingAudioCtx.createOscillator();
+  const gain = timingAudioCtx.createGain();
+  osc.frequency.value = 850;
+  gain.gain.setValueAtTime(0.28, timingAudioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, timingAudioCtx.currentTime + 0.07);
+  osc.connect(gain);
+  gain.connect(timingAudioCtx.destination);
+  osc.start();
+  osc.stop(timingAudioCtx.currentTime + 0.07);
+}
+
+function formatTimingRemaining(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function stopTiming() {
+  timingRunning = false;
+  if (timingTimer) clearTimeout(timingTimer);
+  if (timingCountdownInterval) { clearInterval(timingCountdownInterval); timingCountdownInterval = null; }
+  document.getElementById('timing-countdown').style.display = 'none';
+  document.getElementById('timing-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
+  document.getElementById('timing-display').style.display = 'none';
 }
 
 
