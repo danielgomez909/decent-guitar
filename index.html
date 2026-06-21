@@ -70,7 +70,8 @@
 
     /* CHORD CHIPS */
     .chord-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .chord-chip { background: var(--accent); color: #fff; font-size: 0.82rem; font-weight: 600; padding: 5px 12px; border-radius: 20px; font-family: 'DM Mono', monospace; cursor: pointer; transition: background .15s; }
+    .chord-chip { background: var(--accent); color: #fff; font-size: 0.82rem; font-weight: 600; padding: 5px 12px; border-radius: 20px; font-family: 'DM Mono', monospace; cursor: pointer; transition: all .15s; border: 2px solid transparent; }
+    .chord-chip.selected { background: var(--green); border-color: var(--cream); box-shadow: 0 0 0 3px rgba(74,103,65,0.3); transform: scale(1.08); }
     .chord-chip:hover { background: var(--accent-light); }
 
     /* LYRICS VIEW */
@@ -269,76 +270,115 @@
 <div id="tab-practice" class="tab-content">
   <div class="section-header"><h2>Practice</h2></div>
 
-  <div class="card" style="padding:16px;">
-    <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Chord Change Cycling</h3>
+  <div class="subtab-bar">
+    <button class="subtab-btn active" onclick="switchPracticeSubtab('practice-chords')">Chord Cycling</button>
+    <button class="subtab-btn" onclick="switchPracticeSubtab('practice-strum')">Strumming Drill</button>
+  </div>
 
-    <div class="form-group">
-      <label>Tap a chord to add it to the sequence</label>
-      <div id="practice-chord-picker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;"></div>
-    </div>
-
-    <div class="form-group">
-      <label>Sequence (tap to remove)</label>
-      <div id="practice-sequence" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;min-height:36px;"></div>
-    </div>
-
-    <div class="form-row">
+  <!-- CHORD CHANGE CYCLING -->
+  <div id="practice-chords" class="subtab-content active">
+    <div class="card" style="padding:16px;">
       <div class="form-group">
-        <label>BPM</label>
-        <input type="number" id="practice-bpm" value="60" min="20" max="240" />
+        <label>Tap a chord to add it to the sequence</label>
+        <div id="practice-chord-picker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;"></div>
       </div>
+
       <div class="form-group">
-        <label>Beats per Chord</label>
-        <input type="number" id="practice-bpc" value="4" min="1" max="16" />
+        <label>Sequence (tap to remove)</label>
+        <div id="practice-sequence" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;min-height:36px;"></div>
       </div>
-    </div>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn btn-primary" id="practice-start-btn" onclick="togglePractice()"><i class="ti ti-player-play"></i> Start</button>
-      <button class="btn btn-secondary" onclick="clearPracticeSequence()">Clear Sequence</button>
-    </div>
-
-    <div id="practice-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
-
-    <div id="practice-display" style="display:none;padding:24px;background:var(--brown);border-radius:var(--radius);">
-      <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:16px;">
-        <div style="text-align:center;">
-          <div id="practice-current-chord" style="font-family:'DM Mono',monospace;font-size:3rem;font-weight:700;color:var(--accent-light);"></div>
-          <div id="practice-beat-dots" style="display:flex;justify-content:center;gap:8px;margin-top:10px;"></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="form-group">
+          <label>BPM</label>
+          <input type="number" id="practice-bpm" value="60" min="20" max="240" />
         </div>
-        <div style="text-align:center;opacity:0.7;">
-          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--cream);margin-bottom:4px;">Next chord</div>
-          <div id="practice-next-chord" style="font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--cream);"></div>
+        <div class="form-group">
+          <label>Beats per Chord</label>
+          <input type="number" id="practice-bpc" value="4" min="1" max="16" />
+        </div>
+        <div class="form-group">
+          <label>Start Delay</label>
+          <select id="practice-delay-select">
+            <option value="1">1s</option><option value="2">2s</option><option value="3">3s</option>
+            <option value="4">4s</option><option value="5">5s</option><option value="6">6s</option>
+            <option value="7">7s</option><option value="8">8s</option><option value="9">9s</option>
+            <option value="10" selected>10s</option><option value="11">11s</option><option value="12">12s</option>
+            <option value="13">13s</option><option value="14">14s</option><option value="15">15s</option>
+            <option value="16">16s</option><option value="17">17s</option><option value="18">18s</option>
+            <option value="19">19s</option><option value="20">20s</option>
+          </select>
         </div>
       </div>
-      <table class="string-table" id="practice-fingering-table" style="background:#fff;border-radius:8px;padding:8px;max-width:280px;margin:0 auto;">
-        <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
-        <tbody></tbody>
-      </table>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-primary" id="practice-start-btn" onclick="togglePractice()"><i class="ti ti-player-play"></i> Start</button>
+        <button class="btn btn-secondary" onclick="clearPracticeSequence()">Clear Sequence</button>
+      </div>
+
+      <div id="practice-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
+
+      <div id="practice-display" style="display:none;padding:24px;background:var(--brown);border-radius:var(--radius);">
+        <div style="display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:16px;">
+          <div style="text-align:center;">
+            <div id="practice-current-chord" style="font-family:'DM Mono',monospace;font-size:3rem;font-weight:700;color:var(--accent-light);"></div>
+            <div id="practice-beat-dots" style="display:flex;justify-content:center;gap:8px;margin-top:10px;"></div>
+          </div>
+          <div style="text-align:center;opacity:0.7;">
+            <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--cream);margin-bottom:4px;">Next chord</div>
+            <div id="practice-next-chord" style="font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--cream);"></div>
+          </div>
+        </div>
+        <table class="string-table" id="practice-fingering-table" style="background:#fff;border-radius:8px;padding:8px;max-width:280px;margin:0 auto;">
+          <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <div class="card" style="padding:16px;margin-top:16px;">
-    <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Strumming Pattern Drill</h3>
+  <!-- STRUMMING PATTERN DRILL -->
+  <div id="practice-strum" class="subtab-content">
+    <div class="card" style="padding:16px;">
+      <div class="form-group">
+        <label>Tap a pattern to select it</label>
+        <div id="strum-pattern-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
 
-    <div class="form-group">
-      <label>Tap a pattern to select it</label>
-      <div id="strum-pattern-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-    </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="form-group">
+          <label>BPM</label>
+          <input type="number" id="strum-bpm" value="60" min="20" max="240" />
+        </div>
+        <div class="form-group">
+          <label>Start Delay</label>
+          <select id="strum-delay-select">
+            <option value="1">1s</option><option value="2">2s</option><option value="3">3s</option>
+            <option value="4">4s</option><option value="5">5s</option><option value="6">6s</option>
+            <option value="7">7s</option><option value="8">8s</option><option value="9">9s</option>
+            <option value="10" selected>10s</option><option value="11">11s</option><option value="12">12s</option>
+            <option value="13">13s</option><option value="14">14s</option><option value="15">15s</option>
+            <option value="16">16s</option><option value="17">17s</option><option value="18">18s</option>
+            <option value="19">19s</option><option value="20">20s</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Repeat Count</label>
+          <input type="number" id="strum-repeat-count" value="10" min="1" max="999" />
+        </div>
+      </div>
 
-    <div class="form-group">
-      <label>BPM</label>
-      <input type="number" id="strum-bpm" value="60" min="20" max="240" style="max-width:140px;" />
-    </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-primary" id="strum-start-btn" onclick="toggleStrumDrill()"><i class="ti ti-player-play"></i> Start</button>
+      </div>
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn btn-primary" id="strum-start-btn" onclick="toggleStrumDrill()"><i class="ti ti-player-play"></i> Start</button>
-    </div>
+      <div id="strum-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
 
-    <div id="strum-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
+      <div id="strum-progress" style="display:none;text-align:center;color:var(--brown-light);font-size:0.85rem;margin-bottom:8px;"></div>
 
-    <div id="strum-display" style="display:none;padding:28px 16px;background:var(--brown);border-radius:var(--radius);text-align:center;">
-      <div id="strum-slots" style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;"></div>
+      <div id="strum-display" style="display:none;padding:28px 16px;background:var(--brown);border-radius:var(--radius);text-align:center;">
+        <div id="strum-slots" style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -492,11 +532,19 @@ function switchTab(name) {
 }
 
 function switchSubtab(id) {
-  document.querySelectorAll('.subtab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#tab-admin .subtab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#tab-admin .subtab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   const idx = ['admin-chords','admin-patterns','admin-songs'].indexOf(id);
-  document.querySelectorAll('.subtab-btn')[idx].classList.add('active');
+  document.querySelectorAll('#tab-admin .subtab-btn')[idx].classList.add('active');
+}
+
+function switchPracticeSubtab(id) {
+  document.querySelectorAll('#tab-practice .subtab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#tab-practice .subtab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx = ['practice-chords','practice-strum'].indexOf(id);
+  document.querySelectorAll('#tab-practice .subtab-btn')[idx].classList.add('active');
 }
 
 // ── TOAST ──
@@ -1338,7 +1386,7 @@ async function initPractice() {
 
   const strumPicker = document.getElementById('strum-pattern-picker');
   strumPicker.innerHTML = allPatterns.map(p =>
-    `<span class="chord-chip" style="cursor:pointer;font-family:'DM Mono',monospace;" onclick="selectStrumPattern(${p.id})">${p.notation}</span>`).join('');
+    `<span class="chord-chip" data-pattern-id="${p.id}" style="cursor:pointer;font-family:'DM Mono',monospace;" onclick="selectStrumPattern(${p.id})">${p.notation}</span>`).join('');
 }
 
 function addPracticeChordById(id) {
@@ -1380,7 +1428,7 @@ function startPractice() {
   showPracticeChord(practiceChordIndex);
   document.getElementById('practice-beat-dots').innerHTML = '';
 
-  let remaining = 10;
+  let remaining = parseInt(document.getElementById('practice-delay-select').value) || 10;
   const countdownEl = document.getElementById('practice-countdown');
   countdownEl.style.display = '';
   countdownEl.textContent = `Starting in ${remaining}…`;
@@ -1482,6 +1530,7 @@ let strumCountdownInterval = null;
 let strumSlotIndex = 0;
 let strumAudioCtx = null;
 let strumSlots = []; // array of 'D' | 'U' | ' '
+let strumCyclesCompleted = 0;
 
 function selectStrumPattern(id) {
   const p = allPatterns.find(x => x.id === id);
@@ -1489,6 +1538,9 @@ function selectStrumPattern(id) {
   strumPattern = p;
   strumSlots = p.notation.split('');
   renderStrumSlots(-1);
+  document.querySelectorAll('#strum-pattern-picker .chord-chip').forEach(el => {
+    el.classList.toggle('selected', parseInt(el.dataset.patternId) === id);
+  });
 }
 
 function renderStrumSlots(activeIdx) {
@@ -1510,12 +1562,19 @@ function startStrumDrill() {
   if (!strumPattern) { toast('Select a strumming pattern first'); return; }
   document.getElementById('strum-start-btn').innerHTML = '<i class="ti ti-player-pause"></i> Cancel';
   document.getElementById('strum-display').style.display = '';
+
+  strumCyclesCompleted = 0;
+  const totalRepeats = parseInt(document.getElementById('strum-repeat-count').value) || 10;
+  const progressEl = document.getElementById('strum-progress');
+  progressEl.style.display = '';
+  progressEl.textContent = `Cycle 0 of ${totalRepeats}`;
+
   if (!strumAudioCtx) strumAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   strumSlotIndex = -1;
   renderStrumSlots(-1);
 
-  let remaining = 10;
+  let remaining = parseInt(document.getElementById('strum-delay-select').value) || 10;
   const countdownEl = document.getElementById('strum-countdown');
   countdownEl.style.display = '';
   countdownEl.textContent = `Starting in ${remaining}…`;
@@ -1539,7 +1598,20 @@ function scheduleNextStrumSlot() {
   const bpm = parseInt(document.getElementById('strum-bpm').value) || 60;
   const slotMs = 30000 / bpm; // 8th note = half a quarter-note beat
   strumTimer = setTimeout(() => {
+    const wasLastSlot = strumSlotIndex === strumSlots.length - 1;
     strumSlotIndex = (strumSlotIndex + 1) % strumSlots.length;
+    if (strumSlotIndex === 0 && wasLastSlot) {
+      strumCyclesCompleted++;
+      const totalRepeats = parseInt(document.getElementById('strum-repeat-count').value) || 10;
+      document.getElementById('strum-progress').textContent = `Cycle ${strumCyclesCompleted} of ${totalRepeats}`;
+      if (strumCyclesCompleted >= totalRepeats) {
+        renderStrumSlots(strumSlotIndex);
+        playStrumClick(strumSlots[strumSlotIndex]);
+        stopStrumDrill();
+        toast('Strumming drill complete!');
+        return;
+      }
+    }
     renderStrumSlots(strumSlotIndex);
     playStrumClick(strumSlots[strumSlotIndex]);
     scheduleNextStrumSlot();
@@ -1564,6 +1636,7 @@ function stopStrumDrill() {
   if (strumTimer) clearTimeout(strumTimer);
   if (strumCountdownInterval) { clearInterval(strumCountdownInterval); strumCountdownInterval = null; }
   document.getElementById('strum-countdown').style.display = 'none';
+  document.getElementById('strum-progress').style.display = 'none';
   document.getElementById('strum-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
   document.getElementById('strum-display').style.display = 'none';
 }
