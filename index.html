@@ -421,19 +421,17 @@
 
   <!-- FINGERING -->
   <div id="practice-fingering" class="subtab-content">
-    <div class="card" style="padding:16px;margin-bottom:12px;">
-      <h3 style="font-family:'Lora',serif;margin-bottom:8px;">Spider Walk</h3>
-      <p style="color:var(--brown-light);font-size:0.88rem;">
-        Walk fingers 1→2→3→4 across each string from low E to high E, starting at the 5th fret and moving up to the 8th fret.
-      </p>
+    <div class="card" style="padding:14px 16px;margin-bottom:10px;">
+      <h3 style="font-family:'Lora',serif;font-size:0.95rem;margin-bottom:4px;">Spider Walk</h3>
+      <p style="color:var(--brown-light);font-size:0.85rem;">Walk fingers 1→2→3→4 across each string from low E to high E, frets 5–8.</p>
     </div>
-    <div id="exercise-list-practice" style="margin-bottom:12px;"></div>
+    <div id="exercise-list-practice"></div>
     <div id="exercise-detail-practice" style="display:none;">
-      <button class="back-btn" onclick="closeExerciseDetail()" style="margin-bottom:10px;"><i class="ti ti-chevron-left"></i> Exercises</button>
+      <button class="back-btn" onclick="closeExerciseDetail()"><i class="ti ti-chevron-left"></i> Exercises</button>
       <div class="card" style="padding:16px;">
-        <h3 id="exercise-detail-name" style="font-family:'Lora',serif;margin-bottom:6px;"></h3>
-        <p id="exercise-detail-notes" style="font-size:0.85rem;color:var(--brown-light);margin-bottom:14px;"></p>
-        <div id="exercise-tab-display" style="background:var(--brown);border-radius:var(--radius);padding:16px;overflow-x:auto;"></div>
+        <h3 id="exercise-detail-name" style="font-family:'Lora',serif;margin-bottom:4px;"></h3>
+        <p id="exercise-detail-notes" style="font-size:0.82rem;color:var(--brown-light);margin-bottom:12px;"></p>
+        <div id="exercise-tab-display" style="background:var(--brown);border-radius:var(--radius);padding:16px 20px;overflow-x:auto;"></div>
       </div>
     </div>
   </div>
@@ -600,13 +598,32 @@
     <div class="form-group"><label>Name</label><input type="text" id="exercise-name" placeholder="e.g. Mary Had a Little Lamb" /></div>
     <div class="form-group"><label>Notes (optional)</label><input type="text" id="exercise-notes" placeholder="e.g. Practice slowly at first" /></div>
     <div class="form-group">
-      <label>Tab (enter notes space-separated per string, x for rest, blank if string not used)</label>
+      <label>Tab (space-separated fret numbers per string, x for rest, blank if string not used)</label>
       <div style="border:1px solid var(--cream-dark);border-radius:8px;overflow:hidden;margin-top:4px;">
-        ${['e','B','G','D','A','E'].map(s => `
         <div style="display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);">
-          <span style="width:28px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:var(--brown-light);flex-shrink:0;padding:8px 0;">${s}</span>
-          <input type="text" id="tab-${s}" placeholder="e.g. 5 3 1 3 5" style="flex:1;border:none;padding:8px 10px;font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;background:transparent;" />
-        </div>`).join('')}
+          <span style="width:32px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:#7a3a8a;flex-shrink:0;padding:8px 0;">e</span>
+          <input type="text" id="tab-e" placeholder="e.g. 5 3 1" style="flex:1;border:none;padding:8px 10px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;" />
+        </div>
+        <div style="display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);">
+          <span style="width:32px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:#2a5a8a;flex-shrink:0;padding:8px 0;">B</span>
+          <input type="text" id="tab-B" placeholder="e.g. 5 3 1 3 5 5 5 x 3 3 3 x 5 5 8" style="flex:1;border:none;padding:8px 10px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;" />
+        </div>
+        <div style="display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);">
+          <span style="width:32px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:#4a6741;flex-shrink:0;padding:8px 0;">G</span>
+          <input type="text" id="tab-G" placeholder="" style="flex:1;border:none;padding:8px 10px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;" />
+        </div>
+        <div style="display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);">
+          <span style="width:32px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:#8b6914;flex-shrink:0;padding:8px 0;">D</span>
+          <input type="text" id="tab-D" placeholder="" style="flex:1;border:none;padding:8px 10px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;" />
+        </div>
+        <div style="display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);">
+          <span style="width:32px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:#a0522d;flex-shrink:0;padding:8px 0;">A</span>
+          <input type="text" id="tab-A" placeholder="" style="flex:1;border:none;padding:8px 10px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;" />
+        </div>
+        <div style="display:flex;align-items:center;">
+          <span style="width:32px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:#c0622a;flex-shrink:0;padding:8px 0;">E</span>
+          <input type="text" id="tab-E" placeholder="" style="flex:1;border:none;padding:8px 10px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;" />
+        </div>
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -838,6 +855,13 @@ function switchPracticeSubtab(id) {
   document.getElementById(id).classList.add('active');
   const idx = ['practice-chords','practice-strum','practice-song','practice-fingering','practice-timing'].indexOf(id);
   document.querySelectorAll('#tab-practice .subtab-btn')[idx].classList.add('active');
+  if (id === 'practice-fingering') {
+    if (!allExercises.length) {
+      api('fingering_exercises?select=*&order=name').then(ex => { allExercises = ex; renderExerciseList(); });
+    } else {
+      renderExerciseList();
+    }
+  }
 }
 
 // ── TOAST ──
@@ -1152,6 +1176,150 @@ async function initAdmin() {
   searchExercises();
 }
 
+// ── EXERCISE ADMIN ──
+const TAB_STRINGS = ['e','B','G','D','A','E'];
+
+function searchExercises() {
+  const q = (document.getElementById('exercise-search-input')?.value || '').toLowerCase();
+  const results = q ? allExercises.filter(e => e.name.toLowerCase().includes(q)) : allExercises;
+  const el = document.getElementById('exercise-search-results');
+  if (!el) return;
+  if (!results.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light)">No exercises found.</p>'; return; }
+  el.innerHTML = results.map(e => `
+    <div class="search-result-item">
+      <span style="font-weight:600">${e.name}</span>
+      <div class="search-result-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editExercise(${e.id})">Edit</button>
+      </div>
+    </div>`).join('');
+}
+
+function editExercise(id) {
+  const e = allExercises.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('exercise-edit-id').value = e.id;
+  document.getElementById('exercise-name').value = e.name || '';
+  document.getElementById('exercise-notes').value = e.notes || '';
+  TAB_STRINGS.forEach(s => {
+    const el = document.getElementById(`tab-${s}`);
+    if (el) el.value = (e.tab && e.tab[s]) ? e.tab[s] : '';
+  });
+  document.getElementById('exercise-form-title').textContent = `Edit: ${e.name}`;
+  document.getElementById('exercise-cancel-btn').style.display = '';
+  document.getElementById('exercise-delete-btn').style.display = '';
+  document.getElementById('exercise-name').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetExerciseForm() {
+  document.getElementById('exercise-edit-id').value = '';
+  document.getElementById('exercise-name').value = '';
+  document.getElementById('exercise-notes').value = '';
+  TAB_STRINGS.forEach(s => { const el = document.getElementById(`tab-${s}`); if (el) el.value = ''; });
+  document.getElementById('exercise-form-title').textContent = 'Add Exercise';
+  document.getElementById('exercise-cancel-btn').style.display = 'none';
+  document.getElementById('exercise-delete-btn').style.display = 'none';
+}
+
+async function saveExercise() {
+  const name = document.getElementById('exercise-name').value.trim();
+  if (!name) { toast('Name required'); return; }
+  const notes = document.getElementById('exercise-notes').value.trim() || null;
+  const tab = {};
+  TAB_STRINGS.forEach(s => { tab[s] = (document.getElementById(`tab-${s}`)?.value || '').trim(); });
+  const editId = document.getElementById('exercise-edit-id').value;
+  try {
+    if (editId) {
+      await api(`fingering_exercises?id=eq.${editId}`, 'PATCH', { name, notes, tab });
+      toast(`"${name}" updated`);
+    } else {
+      await api('fingering_exercises', 'POST', { name, notes, tab });
+      toast(`"${name}" saved`);
+    }
+    allExercises = await api('fingering_exercises?select=*&order=name');
+    resetExerciseForm();
+    searchExercises();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function deleteExercise() {
+  const id = document.getElementById('exercise-edit-id').value;
+  const name = document.getElementById('exercise-name').value;
+  if (!id) return;
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  try {
+    await api(`fingering_exercises?id=eq.${id}`, 'DELETE');
+    toast(`"${name}" deleted`);
+    allExercises = await api('fingering_exercises?select=*&order=name');
+    resetExerciseForm();
+    searchExercises();
+    renderExerciseList();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+// ── EXERCISE PRACTICE ──
+function renderExerciseList() {
+  const el = document.getElementById('exercise-list-practice');
+  if (!el) return;
+  if (!allExercises.length) {
+    el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light);text-align:center;padding:10px 0;">No exercises yet — add some in Admin → Exercises.</p>';
+    return;
+  }
+  el.innerHTML = allExercises.map(e => `
+    <div class="song-item" onclick="openExerciseDetail(${e.id})" style="margin-bottom:8px;">
+      <div>
+        <h3 style="font-family:'Lora',serif;font-size:0.95rem;">${e.name}</h3>
+        ${e.notes ? `<div style="font-size:0.8rem;color:var(--brown-light);">${e.notes}</div>` : ''}
+      </div>
+      <i class="ti ti-chevron-right" style="color:var(--brown-light);"></i>
+    </div>`).join('');
+}
+
+function openExerciseDetail(id) {
+  const e = allExercises.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('exercise-detail-name').textContent = e.name;
+  document.getElementById('exercise-detail-notes').textContent = e.notes || '';
+  document.getElementById('exercise-tab-display').innerHTML = renderTabDisplay(e.tab);
+  document.getElementById('exercise-list-practice').style.display = 'none';
+  document.getElementById('exercise-detail-practice').style.display = '';
+}
+
+function closeExerciseDetail() {
+  document.getElementById('exercise-list-practice').style.display = '';
+  document.getElementById('exercise-detail-practice').style.display = 'none';
+}
+
+function renderTabDisplay(tab) {
+  if (!tab) return '<p style="color:rgba(250,247,242,0.5);font-size:0.85rem;">No tab data.</p>';
+  const parsed = {};
+  let maxCols = 0;
+  TAB_STRINGS.forEach(s => {
+    const tokens = (tab[s] || '').trim().split(/\s+/).filter(t => t);
+    parsed[s] = tokens;
+    if (tokens.length > maxCols) maxCols = tokens.length;
+  });
+  if (maxCols === 0) return '<p style="color:rgba(250,247,242,0.5);font-size:0.85rem;">No tab data.</p>';
+
+  const lines = TAB_STRINGS.map(s => {
+    const tokens = parsed[s];
+    let line = `<span style="color:var(--accent-light);font-weight:700;user-select:none;">${s}|</span>`;
+    for (let i = 0; i < maxCols; i++) {
+      const tok = tokens[i] || '';
+      if (!tok || tok === '-') {
+        line += `<span style="color:rgba(250,247,242,0.25);">--</span>`;
+      } else if (tok === 'x') {
+        line += `<span style="color:rgba(250,247,242,0.45);">x-</span>`;
+      } else {
+        const fretStr = tok.length > 1 ? tok + '-' : tok + '--';
+        line += `<span style="color:var(--cream);">${fretStr}</span>`;
+      }
+    }
+    line += `<span style="color:var(--accent-light);font-weight:700;user-select:none;">|</span>`;
+    return `<div style="font-family:'Courier New',monospace;font-size:1rem;line-height:1.9;white-space:nowrap;">${line}</div>`;
+  });
+  return lines.join('');
+}
+
 // ── SEARCH ──
 function searchChords() {
   const q = document.getElementById('chord-search-input').value.toLowerCase();
@@ -1280,163 +1448,6 @@ function resetPatternForm() {
   document.getElementById('pattern-notes-input').value = '';
   document.getElementById('pattern-form-title').textContent = 'Add Pattern';
   document.getElementById('pattern-cancel-btn').style.display = 'none';
-}
-
-// ── EXERCISE ADMIN ──
-const TAB_STRINGS = ['e','B','G','D','A','E'];
-
-function searchExercises() {
-  const q = (document.getElementById('exercise-search-input')?.value || '').toLowerCase();
-  const results = q ? allExercises.filter(e => e.name.toLowerCase().includes(q)) : allExercises;
-  const el = document.getElementById('exercise-search-results');
-  if (!el) return;
-  if (!results.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light)">No exercises found.</p>'; return; }
-  el.innerHTML = results.map(e => `
-    <div class="search-result-item">
-      <span style="font-weight:600">${e.name}</span>
-      <div class="search-result-actions">
-        <button class="btn btn-secondary btn-sm" onclick="editExercise(${e.id})">Edit</button>
-      </div>
-    </div>`).join('');
-}
-
-function editExercise(id) {
-  const e = allExercises.find(x => x.id === id);
-  if (!e) return;
-  document.getElementById('exercise-edit-id').value = e.id;
-  document.getElementById('exercise-name').value = e.name || '';
-  document.getElementById('exercise-notes').value = e.notes || '';
-  TAB_STRINGS.forEach(s => {
-    const el = document.getElementById(`tab-${s}`);
-    if (el) el.value = (e.tab && e.tab[s]) ? e.tab[s] : '';
-  });
-  document.getElementById('exercise-form-title').textContent = `Edit Exercise: ${e.name}`;
-  document.getElementById('exercise-cancel-btn').style.display = '';
-  document.getElementById('exercise-delete-btn').style.display = '';
-  document.getElementById('exercise-name').scrollIntoView({ behavior: 'smooth' });
-}
-
-function resetExerciseForm() {
-  document.getElementById('exercise-edit-id').value = '';
-  document.getElementById('exercise-name').value = '';
-  document.getElementById('exercise-notes').value = '';
-  TAB_STRINGS.forEach(s => { const el = document.getElementById(`tab-${s}`); if (el) el.value = ''; });
-  document.getElementById('exercise-form-title').textContent = 'Add Exercise';
-  document.getElementById('exercise-cancel-btn').style.display = 'none';
-  document.getElementById('exercise-delete-btn').style.display = 'none';
-}
-
-async function saveExercise() {
-  const name = document.getElementById('exercise-name').value.trim();
-  if (!name) { toast('Name required'); return; }
-  const notes = document.getElementById('exercise-notes').value.trim() || null;
-  const tab = {};
-  TAB_STRINGS.forEach(s => { tab[s] = document.getElementById(`tab-${s}`)?.value.trim() || ''; });
-  const editId = document.getElementById('exercise-edit-id').value;
-  try {
-    if (editId) {
-      await api(`fingering_exercises?id=eq.${editId}`, 'PATCH', { name, notes, tab });
-      toast(`"${name}" updated`);
-    } else {
-      await api('fingering_exercises', 'POST', { name, notes, tab });
-      toast(`"${name}" saved`);
-    }
-    allExercises = await api('fingering_exercises?select=*&order=name');
-    resetExerciseForm();
-    searchExercises();
-    renderExerciseList();
-  } catch(e) { toast('Error: ' + e.message); }
-}
-
-async function deleteExercise() {
-  const id = document.getElementById('exercise-edit-id').value;
-  const name = document.getElementById('exercise-name').value;
-  if (!id) return;
-  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-  try {
-    await api(`fingering_exercises?id=eq.${id}`, 'DELETE');
-    toast(`"${name}" deleted`);
-    allExercises = await api('fingering_exercises?select=*&order=name');
-    resetExerciseForm();
-    searchExercises();
-    renderExerciseList();
-  } catch(e) { toast('Error: ' + e.message); }
-}
-
-// ── EXERCISE PRACTICE ──
-function renderExerciseList() {
-  const el = document.getElementById('exercise-list-practice');
-  if (!el) return;
-  if (!allExercises.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light);text-align:center;padding:10px 0;">No exercises yet — add some in Admin → Exercises.</p>'; return; }
-  el.innerHTML = allExercises.map(e => `
-    <div class="song-item" onclick="openExerciseDetail(${e.id})" style="margin-bottom:8px;">
-      <div><h3 style="font-family:'Lora',serif;font-size:0.95rem;">${e.name}</h3>${e.notes ? `<div style="font-size:0.8rem;color:var(--brown-light);">${e.notes}</div>` : ''}</div>
-      <i class="ti ti-chevron-right" style="color:var(--brown-light);"></i>
-    </div>`).join('');
-}
-
-function openExerciseDetail(id) {
-  const e = allExercises.find(x => x.id === id);
-  if (!e) return;
-  document.getElementById('exercise-detail-name').textContent = e.name;
-  document.getElementById('exercise-detail-notes').textContent = e.notes || '';
-  document.getElementById('exercise-tab-display').innerHTML = renderTabDisplay(e.tab);
-  document.getElementById('exercise-list-practice').style.display = 'none';
-  document.getElementById('exercise-detail-practice').style.display = '';
-}
-
-function closeExerciseDetail() {
-  document.getElementById('exercise-list-practice').style.display = '';
-  document.getElementById('exercise-detail-practice').style.display = 'none';
-}
-
-function renderTabDisplay(tab) {
-  if (!tab) return '';
-  // Find max column count across all strings
-  const parsed = {};
-  let maxCols = 0;
-  TAB_STRINGS.forEach(s => {
-    const tokens = (tab[s] || '').trim().split(/\s+/).filter(t => t);
-    parsed[s] = tokens;
-    if (tokens.length > maxCols) maxCols = tokens.length;
-  });
-
-  if (maxCols === 0) return '<p style="color:rgba(250,247,242,0.5);font-size:0.85rem;">No tab data.</p>';
-
-  // Build display lines: pad each string to maxCols
-  const lines = TAB_STRINGS.map(s => {
-    const tokens = parsed[s];
-    let line = `<span style="color:var(--accent-light);font-weight:700;">${s}|</span>`;
-    for (let i = 0; i < maxCols; i++) {
-      const tok = tokens[i] || '-';
-      if (tok === 'x') {
-        line += `<span style="color:rgba(250,247,242,0.4);">x-</span>`;
-      } else if (tok === '-') {
-        line += `<span style="color:rgba(250,247,242,0.3);">--</span>`;
-      } else {
-        // fret number — pad with dashes after
-        const fretStr = tok.length > 1 ? tok + '-' : tok + '--';
-        line += `<span style="color:var(--cream);">${fretStr}</span>`;
-      }
-    }
-    line += `<span style="color:var(--accent-light);font-weight:700;">|</span>`;
-    return `<div style="font-family:'DM Mono',monospace;font-size:1rem;line-height:1.8;white-space:nowrap;">${line}</div>`;
-  });
-
-  return lines.join('');
-}
-
-// Load exercises when Practice → Fingering subtab is opened
-const _origSwitchPracticeSubtab = switchPracticeSubtab;
-function switchPracticeSubtab(id) {
-  _origSwitchPracticeSubtab(id);
-  if (id === 'practice-fingering') {
-    if (!allExercises.length) {
-      api('fingering_exercises?select=*&order=name').then(ex => { allExercises = ex; renderExerciseList(); });
-    } else {
-      renderExerciseList();
-    }
-  }
 }
 
 // ── FINGERING GRID ──
