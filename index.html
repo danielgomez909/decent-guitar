@@ -274,22 +274,24 @@
   <div class="chord-grid" id="chords-grid">
     <div class="empty" style="grid-column:1/-1;"><i class="ti ti-hand-off"></i><p>No chords yet.</p></div>
   </div>
-  <div class="modal-overlay" id="chord-modal">
-    <div class="modal">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <h3 id="chord-modal-name"></h3>
-        <button class="btn btn-secondary btn-sm" id="chord-view-toggle" onclick="toggleChordView()">Show table</button>
-      </div>
-      <div id="chord-diagram-view" style="display:flex;justify-content:center;"></div>
-      <div id="chord-table-view" style="display:none;">
-        <table class="string-table" id="chord-modal-table">
-          <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
-      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
+</div>
+
+<!-- Chord modal at document level so it works from any tab -->
+<div class="modal-overlay" id="chord-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 id="chord-modal-name"></h3>
+      <button class="btn btn-secondary btn-sm" id="chord-view-toggle" onclick="toggleChordView()">Show table</button>
     </div>
+    <div id="chord-diagram-view" style="display:flex;justify-content:center;"></div>
+    <div id="chord-table-view" style="display:none;">
+      <table class="string-table" id="chord-modal-table">
+        <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
   </div>
 </div>
 
@@ -1439,14 +1441,15 @@ function renderTabDisplay(tab) {
     let line = `<span style="color:var(--accent-light);font-weight:700;user-select:none;">${s}|</span>`;
     for (let i = 0; i < maxCols; i++) {
       const tok = tokens[i] || '';
+      let col, color;
       if (!tok || tok === '-') {
-        line += `<span style="color:rgba(250,247,242,0.25);">--</span>`;
+        col = '---'; color = 'rgba(250,247,242,0.2)';
       } else if (tok === 'x') {
-        line += `<span style="color:rgba(250,247,242,0.45);">x-</span>`;
+        col = 'x--'; color = 'rgba(250,247,242,0.45)';
       } else {
-        const fretStr = tok.length > 1 ? tok + '-' : tok + '--';
-        line += `<span style="color:var(--cream);">${fretStr}</span>`;
+        col = (tok + '---').slice(0, 3); color = 'var(--cream)';
       }
+      line += `<span style="color:${color};">${col}</span>`;
     }
     line += `<span style="color:var(--accent-light);font-weight:700;user-select:none;">|</span>`;
     return `<div style="font-family:'Courier New',monospace;font-size:1rem;line-height:1.9;white-space:nowrap;">${line}</div>`;
