@@ -271,22 +271,24 @@
   <div class="chord-grid" id="chords-grid">
     <div class="empty" style="grid-column:1/-1;"><i class="ti ti-hand-off"></i><p>No chords yet.</p></div>
   </div>
-  <div class="modal-overlay" id="chord-modal">
-    <div class="modal">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <h3 id="chord-modal-name"></h3>
-        <button class="btn btn-secondary btn-sm" id="chord-view-toggle" onclick="toggleChordView()">Show table</button>
-      </div>
-      <div id="chord-diagram-view" style="display:flex;justify-content:center;"></div>
-      <div id="chord-table-view" style="display:none;">
-        <table class="string-table" id="chord-modal-table">
-          <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
-      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
+</div>
+
+<!-- Chord modal — document-level so it works from any tab -->
+<div class="modal-overlay" id="chord-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 id="chord-modal-name"></h3>
+      <button class="btn btn-secondary btn-sm" id="chord-view-toggle" onclick="toggleChordView()">Show table</button>
     </div>
+    <div id="chord-diagram-view" style="display:flex;justify-content:center;"></div>
+    <div id="chord-table-view" style="display:none;">
+      <table class="string-table" id="chord-modal-table">
+        <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
   </div>
 </div>
 
