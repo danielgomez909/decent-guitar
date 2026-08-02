@@ -421,12 +421,20 @@
 
   <!-- FINGERING -->
   <div id="practice-fingering" class="subtab-content">
-    <div class="card" style="padding:32px;text-align:center;">
-      <i class="ti ti-hand-finger" style="font-size:2.5rem;color:var(--brown-light);margin-bottom:12px;display:block;"></i>
-      <h3 style="font-family:'Lora',serif;margin-bottom:8px;">Finger Exercise: Spider Walk</h3>
-      <p style="color:var(--brown-light);font-size:0.95rem;max-width:420px;margin:0 auto;">
+    <div class="card" style="padding:16px;margin-bottom:12px;">
+      <h3 style="font-family:'Lora',serif;margin-bottom:8px;">Spider Walk</h3>
+      <p style="color:var(--brown-light);font-size:0.88rem;">
         Walk fingers 1→2→3→4 across each string from low E to high E, starting at the 5th fret and moving up to the 8th fret.
       </p>
+    </div>
+    <div id="exercise-list-practice" style="margin-bottom:12px;"></div>
+    <div id="exercise-detail-practice" style="display:none;">
+      <button class="back-btn" onclick="closeExerciseDetail()" style="margin-bottom:10px;"><i class="ti ti-chevron-left"></i> Exercises</button>
+      <div class="card" style="padding:16px;">
+        <h3 id="exercise-detail-name" style="font-family:'Lora',serif;margin-bottom:6px;"></h3>
+        <p id="exercise-detail-notes" style="font-size:0.85rem;color:var(--brown-light);margin-bottom:14px;"></p>
+        <div id="exercise-tab-display" style="background:var(--brown);border-radius:var(--radius);padding:16px;overflow-x:auto;"></div>
+      </div>
     </div>
   </div>
 
@@ -489,6 +497,7 @@
     <button class="subtab-btn active" onclick="switchSubtab('admin-chords')">Chords</button>
     <button class="subtab-btn" onclick="switchSubtab('admin-patterns')">Patterns</button>
     <button class="subtab-btn" onclick="switchSubtab('admin-songs')">Songs</button>
+    <button class="subtab-btn" onclick="switchSubtab('admin-exercises')">Exercises</button>
   </div>
 
   <!-- ADMIN: CHORDS -->
@@ -575,6 +584,35 @@
       <button class="btn btn-primary" id="save-song-btn" onclick="saveSong()">Save Song</button>
       <button class="btn btn-secondary" id="song-cancel-btn" onclick="resetSongForm()" style="display:none">Cancel</button>
       <button class="btn btn-danger" id="song-delete-btn" onclick="deleteSong()" style="display:none">Delete Song</button>
+    </div>
+  </div>
+
+  <!-- ADMIN: EXERCISES -->
+  <div id="admin-exercises" class="subtab-content">
+    <h3 style="font-family:'Lora',serif;margin-bottom:12px;">Search Exercises</h3>
+    <div class="search-bar">
+      <input type="text" id="exercise-search-input" placeholder="Search by name…" oninput="searchExercises()" />
+    </div>
+    <div class="search-results" id="exercise-search-results"></div>
+    <hr class="admin-divider" />
+    <h3 style="font-family:'Lora',serif;margin-bottom:12px;" id="exercise-form-title">Add Exercise</h3>
+    <input type="hidden" id="exercise-edit-id" value="" />
+    <div class="form-group"><label>Name</label><input type="text" id="exercise-name" placeholder="e.g. Mary Had a Little Lamb" /></div>
+    <div class="form-group"><label>Notes (optional)</label><input type="text" id="exercise-notes" placeholder="e.g. Practice slowly at first" /></div>
+    <div class="form-group">
+      <label>Tab (enter notes space-separated per string, x for rest, blank if string not used)</label>
+      <div style="border:1px solid var(--cream-dark);border-radius:8px;overflow:hidden;margin-top:4px;">
+        ${['e','B','G','D','A','E'].map(s => `
+        <div style="display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);">
+          <span style="width:28px;text-align:center;font-family:'DM Mono',monospace;font-weight:700;font-size:0.85rem;color:var(--brown-light);flex-shrink:0;padding:8px 0;">${s}</span>
+          <input type="text" id="tab-${s}" placeholder="e.g. 5 3 1 3 5" style="flex:1;border:none;padding:8px 10px;font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;background:transparent;" />
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="saveExercise()">Save Exercise</button>
+      <button class="btn btn-secondary" id="exercise-cancel-btn" onclick="resetExerciseForm()" style="display:none">Cancel</button>
+      <button class="btn btn-danger" id="exercise-delete-btn" onclick="deleteExercise()" style="display:none">Delete Exercise</button>
     </div>
   </div>
 </div>
@@ -746,7 +784,7 @@ const STRINGS = ['e','a','d','g','b','high_e'];
 const STRING_LABELS = { e:'E', a:'A', d:'D', g:'G', b:'B', high_e:'Hi E' };
 const STRING_COLORS = { e:'#c0622a', a:'#a0522d', d:'#8b6914', g:'#4a6741', b:'#2a5a8a', high_e:'#7a3a8a' };
 
-let allSongs = [], allChords = [], allPatterns = [], allParts = [];
+let allSongs = [], allChords = [], allPatterns = [], allParts = [], allExercises = [];
 let currentSong = null;
 let scrolling = false;
 let scrollRAF = null;
@@ -790,7 +828,7 @@ function switchSubtab(id) {
   document.querySelectorAll('#tab-admin .subtab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('#tab-admin .subtab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  const idx = ['admin-chords','admin-patterns','admin-songs'].indexOf(id);
+  const idx = ['admin-chords','admin-patterns','admin-songs','admin-exercises'].indexOf(id);
   document.querySelectorAll('#tab-admin .subtab-btn')[idx].classList.add('active');
 }
 
@@ -834,7 +872,7 @@ async function openSong(id) {
   try {
     const [song, partsOrder] = await Promise.all([
       api(`songs?id=eq.${id}&select=*,strumming_patterns(notation)`),
-      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name),song_part_strumming(strumming_pattern_id,strumming_patterns(notation))&order=part_order`)
+      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name)&order=part_order`)
     ]);
 
     // Fetch lyrics using the known SPO ids
@@ -842,11 +880,11 @@ async function openSong(id) {
     if (partsOrder.length) {
       const spoIds = partsOrder.map(p => p.id).join(',');
       lyrics = await api(`song_lyrics?song_parts_order_id=in.(${spoIds})&order=song_parts_order_id,line_order`);
+      // Attach part info onto each lyric row for rendering
       lyrics.forEach(l => {
         const spo = partsOrder.find(p => p.id === l.song_parts_order_id);
         l._part_order = spo?.part_order;
         l._part_name = spo?.parts?.name;
-        l._part_strumming = spo?.song_part_strumming?.[0]?.strumming_patterns?.notation || null;
       });
     }
 
@@ -854,6 +892,7 @@ async function openSong(id) {
     currentSong._partsOrder = partsOrder;
     currentSong._lyrics = lyrics;
 
+    // Derive unique chords from chord rows
     const chordSet = new Set();
     lyrics.filter(l => l.line_type === 'chords').forEach(l => {
       if (l.lyric_text && l.lyric_text.trim()) {
@@ -861,9 +900,6 @@ async function openSong(id) {
       }
     });
     currentSong._chords = [...chordSet];
-
-    // Load per-song localStorage prefs (#4)
-    loadSongPrefs(id);
 
     renderSongDetail();
     document.getElementById('song-list-view').style.display = 'none';
@@ -876,8 +912,6 @@ function renderSongDetail() {
   document.getElementById('detail-title').textContent = s.title;
   document.getElementById('detail-artist').textContent = s.artist || '';
   const badges = [];
-  if (s.version > 1) badges.push(`<span class="badge badge-capo">v${s.version}</span>`);
-  if (s.difficulty) badges.push(`<span class="badge badge-difficulty">${s.difficulty}</span>`);
   if (s.capo_fret) badges.push(`<span class="badge badge-capo">Capo ${s.capo_fret}</span>`);
   if (s.strumming_patterns?.notation) badges.push(`<span class="badge badge-pattern">${s.strumming_patterns.notation}</span>`);
   document.getElementById('detail-badges').innerHTML = badges.join('');
@@ -898,18 +932,14 @@ function renderLyrics() {
   lyrics.forEach(l => {
     const key = l._part_order;
     const label = l._part_name || '';
-    const strumming = l._part_strumming || null;
-    if (!partsMap[key]) partsMap[key] = { label, strumming, lines: [] };
+    if (!partsMap[key]) partsMap[key] = { label, lines: [] };
     partsMap[key].lines.push(l);
   });
 
   let html = '';
   Object.keys(partsMap).sort((a,b) => a-b).forEach(k => {
     const p = partsMap[k];
-    const strumBadge = p.strumming
-      ? `<span style="font-size:0.68rem;font-family:'DM Mono',monospace;background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:10px;margin-left:6px;letter-spacing:.05em;">${p.strumming}</span>`
-      : '';
-    html += `<div class="part-label">${p.label}${strumBadge}</div>`;
+    html += `<div class="part-label">${p.label}</div>`;
     p.lines.sort((a,b) => a.line_order - b.line_order).forEach(l => {
       if (l.line_type === 'chords') {
         html += `<div class="chord-row">${escHtml(l.lyric_text || '')}</div>`;
@@ -1003,50 +1033,14 @@ function updateScrollSpeed() {
   const val = document.getElementById('scroll-speed').value;
   document.getElementById('scroll-speed-value').textContent = val;
   if (scrolling) { stopScroll(); startScroll(); }
-  saveSongPrefs();
 }
 
 function toggleCompact() {
   const box = document.getElementById('lyrics-box');
   const checked = document.getElementById('compact-toggle').checked;
   box.classList.toggle('compact', checked);
-  saveSongPrefs();
 }
 
-// Also save when delay changes
-document.addEventListener('change', e => {
-  if (e.target.id === 'scroll-delay-select') saveSongPrefs();
-});
-
-// ── PER-SONG PREFS (localStorage) ──
-function songPrefsKey(id) { return `dg_song_prefs_${id}`; }
-
-function saveSongPrefs() {
-  if (!currentSong) return;
-  const prefs = {
-    speed: document.getElementById('scroll-speed').value,
-    delay: document.getElementById('scroll-delay-select').value,
-    compact: document.getElementById('compact-toggle').checked
-  };
-  try { localStorage.setItem(songPrefsKey(currentSong.id), JSON.stringify(prefs)); } catch(e) {}
-}
-
-function loadSongPrefs(id) {
-  try {
-    const raw = localStorage.getItem(songPrefsKey(id));
-    if (!raw) return;
-    const prefs = JSON.parse(raw);
-    if (prefs.speed) {
-      document.getElementById('scroll-speed').value = prefs.speed;
-      document.getElementById('scroll-speed-value').textContent = prefs.speed;
-    }
-    if (prefs.delay) document.getElementById('scroll-delay-select').value = prefs.delay;
-    if (prefs.compact !== undefined) {
-      document.getElementById('compact-toggle').checked = prefs.compact;
-      document.getElementById('lyrics-box').classList.toggle('compact', prefs.compact);
-    }
-  } catch(e) {}
-}
 
 // ── CHORDS ──
 async function loadChords() {
@@ -1154,6 +1148,8 @@ async function initAdmin() {
   searchChords();
   searchPatterns();
   searchSongs();
+  if (!allExercises.length) allExercises = await api('fingering_exercises?select=*&order=name');
+  searchExercises();
 }
 
 // ── SEARCH ──
@@ -1284,6 +1280,163 @@ function resetPatternForm() {
   document.getElementById('pattern-notes-input').value = '';
   document.getElementById('pattern-form-title').textContent = 'Add Pattern';
   document.getElementById('pattern-cancel-btn').style.display = 'none';
+}
+
+// ── EXERCISE ADMIN ──
+const TAB_STRINGS = ['e','B','G','D','A','E'];
+
+function searchExercises() {
+  const q = (document.getElementById('exercise-search-input')?.value || '').toLowerCase();
+  const results = q ? allExercises.filter(e => e.name.toLowerCase().includes(q)) : allExercises;
+  const el = document.getElementById('exercise-search-results');
+  if (!el) return;
+  if (!results.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light)">No exercises found.</p>'; return; }
+  el.innerHTML = results.map(e => `
+    <div class="search-result-item">
+      <span style="font-weight:600">${e.name}</span>
+      <div class="search-result-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editExercise(${e.id})">Edit</button>
+      </div>
+    </div>`).join('');
+}
+
+function editExercise(id) {
+  const e = allExercises.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('exercise-edit-id').value = e.id;
+  document.getElementById('exercise-name').value = e.name || '';
+  document.getElementById('exercise-notes').value = e.notes || '';
+  TAB_STRINGS.forEach(s => {
+    const el = document.getElementById(`tab-${s}`);
+    if (el) el.value = (e.tab && e.tab[s]) ? e.tab[s] : '';
+  });
+  document.getElementById('exercise-form-title').textContent = `Edit Exercise: ${e.name}`;
+  document.getElementById('exercise-cancel-btn').style.display = '';
+  document.getElementById('exercise-delete-btn').style.display = '';
+  document.getElementById('exercise-name').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetExerciseForm() {
+  document.getElementById('exercise-edit-id').value = '';
+  document.getElementById('exercise-name').value = '';
+  document.getElementById('exercise-notes').value = '';
+  TAB_STRINGS.forEach(s => { const el = document.getElementById(`tab-${s}`); if (el) el.value = ''; });
+  document.getElementById('exercise-form-title').textContent = 'Add Exercise';
+  document.getElementById('exercise-cancel-btn').style.display = 'none';
+  document.getElementById('exercise-delete-btn').style.display = 'none';
+}
+
+async function saveExercise() {
+  const name = document.getElementById('exercise-name').value.trim();
+  if (!name) { toast('Name required'); return; }
+  const notes = document.getElementById('exercise-notes').value.trim() || null;
+  const tab = {};
+  TAB_STRINGS.forEach(s => { tab[s] = document.getElementById(`tab-${s}`)?.value.trim() || ''; });
+  const editId = document.getElementById('exercise-edit-id').value;
+  try {
+    if (editId) {
+      await api(`fingering_exercises?id=eq.${editId}`, 'PATCH', { name, notes, tab });
+      toast(`"${name}" updated`);
+    } else {
+      await api('fingering_exercises', 'POST', { name, notes, tab });
+      toast(`"${name}" saved`);
+    }
+    allExercises = await api('fingering_exercises?select=*&order=name');
+    resetExerciseForm();
+    searchExercises();
+    renderExerciseList();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function deleteExercise() {
+  const id = document.getElementById('exercise-edit-id').value;
+  const name = document.getElementById('exercise-name').value;
+  if (!id) return;
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  try {
+    await api(`fingering_exercises?id=eq.${id}`, 'DELETE');
+    toast(`"${name}" deleted`);
+    allExercises = await api('fingering_exercises?select=*&order=name');
+    resetExerciseForm();
+    searchExercises();
+    renderExerciseList();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+// ── EXERCISE PRACTICE ──
+function renderExerciseList() {
+  const el = document.getElementById('exercise-list-practice');
+  if (!el) return;
+  if (!allExercises.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light);text-align:center;padding:10px 0;">No exercises yet — add some in Admin → Exercises.</p>'; return; }
+  el.innerHTML = allExercises.map(e => `
+    <div class="song-item" onclick="openExerciseDetail(${e.id})" style="margin-bottom:8px;">
+      <div><h3 style="font-family:'Lora',serif;font-size:0.95rem;">${e.name}</h3>${e.notes ? `<div style="font-size:0.8rem;color:var(--brown-light);">${e.notes}</div>` : ''}</div>
+      <i class="ti ti-chevron-right" style="color:var(--brown-light);"></i>
+    </div>`).join('');
+}
+
+function openExerciseDetail(id) {
+  const e = allExercises.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('exercise-detail-name').textContent = e.name;
+  document.getElementById('exercise-detail-notes').textContent = e.notes || '';
+  document.getElementById('exercise-tab-display').innerHTML = renderTabDisplay(e.tab);
+  document.getElementById('exercise-list-practice').style.display = 'none';
+  document.getElementById('exercise-detail-practice').style.display = '';
+}
+
+function closeExerciseDetail() {
+  document.getElementById('exercise-list-practice').style.display = '';
+  document.getElementById('exercise-detail-practice').style.display = 'none';
+}
+
+function renderTabDisplay(tab) {
+  if (!tab) return '';
+  // Find max column count across all strings
+  const parsed = {};
+  let maxCols = 0;
+  TAB_STRINGS.forEach(s => {
+    const tokens = (tab[s] || '').trim().split(/\s+/).filter(t => t);
+    parsed[s] = tokens;
+    if (tokens.length > maxCols) maxCols = tokens.length;
+  });
+
+  if (maxCols === 0) return '<p style="color:rgba(250,247,242,0.5);font-size:0.85rem;">No tab data.</p>';
+
+  // Build display lines: pad each string to maxCols
+  const lines = TAB_STRINGS.map(s => {
+    const tokens = parsed[s];
+    let line = `<span style="color:var(--accent-light);font-weight:700;">${s}|</span>`;
+    for (let i = 0; i < maxCols; i++) {
+      const tok = tokens[i] || '-';
+      if (tok === 'x') {
+        line += `<span style="color:rgba(250,247,242,0.4);">x-</span>`;
+      } else if (tok === '-') {
+        line += `<span style="color:rgba(250,247,242,0.3);">--</span>`;
+      } else {
+        // fret number — pad with dashes after
+        const fretStr = tok.length > 1 ? tok + '-' : tok + '--';
+        line += `<span style="color:var(--cream);">${fretStr}</span>`;
+      }
+    }
+    line += `<span style="color:var(--accent-light);font-weight:700;">|</span>`;
+    return `<div style="font-family:'DM Mono',monospace;font-size:1rem;line-height:1.8;white-space:nowrap;">${line}</div>`;
+  });
+
+  return lines.join('');
+}
+
+// Load exercises when Practice → Fingering subtab is opened
+const _origSwitchPracticeSubtab = switchPracticeSubtab;
+function switchPracticeSubtab(id) {
+  _origSwitchPracticeSubtab(id);
+  if (id === 'practice-fingering') {
+    if (!allExercises.length) {
+      api('fingering_exercises?select=*&order=name').then(ex => { allExercises = ex; renderExerciseList(); });
+    } else {
+      renderExerciseList();
+    }
+  }
 }
 
 // ── FINGERING GRID ──
