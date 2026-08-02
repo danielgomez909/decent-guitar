@@ -7,10 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --cream: #faf7f2; --brown: #3d2b1f; --accent: #c0622a; --green: #4a6741;
-      --brown-light: #7a5c4a;
-    }
+    :root { --cream: #faf7f2; --brown: #3d2b1f; --accent: #c0622a; --green: #4a6741; --brown-light: #7a5c4a; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--brown); line-height: 1.7; }
     .container { max-width: 860px; margin: 0 auto; padding: 40px 24px; }
@@ -30,15 +27,10 @@
     .tag-ux { background: #fde8dc; color: var(--accent); }
     .tag-feature { background: #dff0db; color: var(--green); }
     .tag-data { background: #dce8fa; color: #2a5a8a; }
+    .tag-cross { background: #f0e8fa; color: #5a3a8a; }
     .backlog-item { padding: 8px 12px; border-left: 3px solid var(--accent); background: #fff; margin-bottom: 8px; border-radius: 0 6px 6px 0; font-size: 0.88rem; }
-    .arch-box {
-      display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 16px 0;
-      font-size: 0.85rem;
-    }
-    .arch-node {
-      background: #fff; border: 1.5px solid var(--brown-light); border-radius: 8px;
-      padding: 10px 16px; text-align: center; font-weight: 500;
-    }
+    .arch-box { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 16px 0; font-size: 0.85rem; }
+    .arch-node { background: #fff; border: 1.5px solid var(--brown-light); border-radius: 8px; padding: 10px 16px; text-align: center; font-weight: 500; }
     .arch-node span { display: block; font-size: 0.72rem; color: var(--brown-light); font-weight: 400; }
     .arch-arrow { color: var(--accent); font-size: 1.2rem; }
     .version-entry { margin-bottom: 10px; font-size: 0.88rem; }
@@ -48,14 +40,14 @@
 <body>
 <div class="container">
   <h1>🎸 Decent Guitar</h1>
-  <p class="subtitle">Project Reference — last updated June 2026</p>
+  <p class="subtitle">Project Reference — last updated July 2026</p>
 
   <h2>Overview</h2>
-  <p>Decent Guitar is a personal web app for supporting acoustic guitar learning. It provides a song library with chord-annotated scrolling lyrics (similar to Ultimate Guitar's chord view), a chord fingering library, strumming pattern reference, and a daily practice module (in progress).</p>
+  <p>Decent Guitar is a personal web app for supporting acoustic guitar learning. It provides a song library with chord-annotated scrolling lyrics (similar to Ultimate Guitar's chord view), a chord fingering library with SVG diagram rendering, strumming pattern reference, fingering exercises with tab notation, and a full Practice module covering chord cycling, strumming drills, song practice, finger exercises, and timing.</p>
 
   <h2>Architecture</h2>
   <div class="arch-box">
-    <div class="arch-node">Browser<span>claude.ai / iPhone</span></div>
+    <div class="arch-node">Browser<span>Desktop / iPad</span></div>
     <div class="arch-arrow">→</div>
     <div class="arch-node">Vercel<span>decent-guitar.vercel.app</span></div>
     <div class="arch-arrow">→</div>
@@ -70,39 +62,47 @@
   <h2>Service Accounts</h2>
   <table>
     <tr><th>Service</th><th>Detail</th></tr>
-    <tr><td>Supabase Project</td><td><code>ntrhptxetvdjhoqfaytl.supabase.co</code> (shared project with other Decent apps)</td></tr>
+    <tr><td>Supabase Project</td><td><code>ntrhptxetvdjhoqfaytl.supabase.co</code> (shared with other Decent apps)</td></tr>
     <tr><td>GitHub Repo</td><td><code>danielgomez909/decent-guitar</code></td></tr>
-    <tr><td>Vercel Project</td><td>TBD (not yet created)</td></tr>
+    <tr><td>Vercel Project</td><td><code>decent-guitar.vercel.app</code></td></tr>
   </table>
+
+  <h2>Deployment Workflow</h2>
+  <ol style="padding-left:20px;font-size:0.9rem;line-height:2">
+    <li>Download updated <code>index.html</code> from Claude</li>
+    <li>Go to <code>github.com/danielgomez909/decent-guitar</code></li>
+    <li>Open the file → click pencil (edit) icon → select all, paste new content</li>
+    <li>Commit changes — Vercel auto-deploys in ~30 seconds</li>
+    <li>Verify at the Vercel URL</li>
+  </ol>
+  <p>Note: <code>decent-guitar-reference.html</code> is no longer deployed separately — reference content is inlined in the Reference tab of the app.</p>
 
   <h2>Database Schema</h2>
 
   <h3>parts</h3>
-  <p>Reference table. Shared part names reused across all songs. Seeded with standard values.</p>
+  <p>Reference table. Shared part names reused across all songs. Seeded: Intro, Verse, Pre-Chorus, Chorus, Bridge, Solo, Outro.</p>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
-    <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td>Auto-incrementing integer</td></tr>
-    <tr><td>name</td><td>text</td><td>Unique. e.g. Intro, Verse, Chorus, Bridge, Pre-Chorus, Solo, Outro</td></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td></td></tr>
+    <tr><td>name</td><td>text</td><td>Unique</td></tr>
   </table>
 
   <h3>strumming_patterns</h3>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
     <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td></td></tr>
-    <tr><td>notation</td><td>text</td><td>e.g. <code>D DU UDU</code></td></tr>
-    <tr><td>notes</td><td>text</td><td>Optional description</td></tr>
+    <tr><td>notation</td><td>text</td><td>e.g. <code>D DU UDU</code>. Each character = one 8th-note slot. D=downstroke, U=upstroke, space=rest.</td></tr>
+    <tr><td>notes</td><td>text</td><td>Nullable</td></tr>
   </table>
 
   <h3>chords</h3>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
     <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td></td></tr>
-    <tr><td>name</td><td>text</td><td>Unique. e.g. Em, G, C</td></tr>
+    <tr><td>name</td><td>text</td><td>Unique. e.g. Em, G, Cmaj7</td></tr>
     <tr><td>fingering</td><td>jsonb</td><td>Per-string: plucked (bool), finger (int|null), fret (int|null). Keys: e, a, d, g, b, high_e</td></tr>
-    <tr><td>notes</td><td>text</td><td>Optional. e.g. barre chord notes</td></tr>
+    <tr><td>notes</td><td>text</td><td>Nullable</td></tr>
   </table>
-  <p>Example fingering JSON (Em):</p>
-  <code>{"e":{"plucked":true,"finger":null,"fret":null},"a":{"plucked":true,"finger":1,"fret":2},...}</code>
 
   <h3>songs</h3>
   <table>
@@ -111,13 +111,15 @@
     <tr><td>title</td><td>text</td><td></td></tr>
     <tr><td>artist</td><td>text</td><td>Nullable</td></tr>
     <tr><td>capo_fret</td><td>int</td><td>Nullable. 1–12</td></tr>
-    <tr><td>source_url</td><td>text</td><td>Nullable. e.g. Ultimate Guitar link</td></tr>
+    <tr><td>version</td><td>int</td><td>Default 1. For multiple versions of the same song.</td></tr>
+    <tr><td>difficulty</td><td>text</td><td>Nullable. Check: Absolute Beginner, Beginner, Intermediate, Advanced</td></tr>
+    <tr><td>source_url</td><td>text</td><td>Nullable</td></tr>
     <tr><td>notes</td><td>text</td><td>Nullable</td></tr>
-    <tr><td><span class="badge fk">FK</span> default_strumming_pattern_id</td><td>int</td><td>Nullable. Points to strumming_patterns. Used when same pattern throughout.</td></tr>
+    <tr><td><span class="badge fk">FK</span> default_strumming_pattern_id</td><td>int</td><td>Nullable → strumming_patterns</td></tr>
   </table>
 
   <h3>song_parts_order</h3>
-  <p>Intermediate table. Assigns a song-specific ordering to part instances (e.g. Verse appears at position 2 and 4 in the same song). Unique constraint on (song_id, part_order).</p>
+  <p>Assigns a song-specific ordered sequence to part instances. Unique on (song_id, part_order). Allows the same part (e.g. Verse) to appear multiple times in one song at different positions.</p>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
     <tr><td><span class="badge pk">PK</span> id</td><td>uuid</td><td></td></tr>
@@ -127,82 +129,90 @@
   </table>
 
   <h3>song_part_strumming</h3>
-  <p>Overrides the song-level default strumming pattern for a specific part instance.</p>
+  <p>Overrides the song-level default strumming pattern for a specific part instance. Shown as a badge next to the part label in the song detail view.</p>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
-    <tr><td><span class="badge fk">FK</span> song_parts_order_id</td><td>uuid</td><td>Composite PK with strumming_pattern_id</td></tr>
+    <tr><td><span class="badge fk">FK</span> song_parts_order_id</td><td>uuid</td><td>Composite PK</td></tr>
     <tr><td><span class="badge fk">FK</span> strumming_pattern_id</td><td>int</td><td>→ strumming_patterns</td></tr>
   </table>
 
   <h3>song_lyrics</h3>
-  <p>One row per line — chord line or lyric line, distinguished by <code>line_type</code>. Lines are strictly ordered by <code>line_order</code> within a part (not paired or grouped — just sequential). Fixed-width text in chord lines is used to visually align chords above lyrics on display. A part may have chord-only or lyric-only lines (e.g. instrumental bars).</p>
+  <p>One row per line. Lines are strictly ordered by line_order within a part. Three line types: chord lines (green, fixed-width, align above lyrics), lyric lines (white, fixed-width Courier), comment lines (italic, muted, Lora serif — for notes/annotations).</p>
   <table>
     <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
     <tr><td><span class="badge pk">PK</span> id</td><td>uuid</td><td></td></tr>
     <tr><td><span class="badge fk">FK</span> song_parts_order_id</td><td>uuid</td><td>→ song_parts_order, cascade delete</td></tr>
-    <tr><td>line_order</td><td>int</td><td>1-based sequence within a part. Unique with song_parts_order_id.</td></tr>
-    <tr><td>lyric_text</td><td>text</td><td>Raw line text, fixed-width spacing for chord alignment</td></tr>
-    <tr><td>line_type</td><td>text</td><td>'chords' or 'lyrics' (check constraint). Comment type planned — see backlog.</td></tr>
+    <tr><td>line_order</td><td>int</td><td>1-based. Unique with song_parts_order_id.</td></tr>
+    <tr><td>lyric_text</td><td>text</td><td>Raw line text</td></tr>
+    <tr><td>line_type</td><td>text</td><td>Check: 'chords', 'lyrics', 'comment'</td></tr>
   </table>
 
-  <h2>Deployment Workflow</h2>
-  <ol style="padding-left:20px;font-size:0.9rem;line-height:2">
-    <li>Download updated file(s) from Claude</li>
-    <li>Go to <code>github.com/danielgomez909/decent-guitar</code></li>
-    <li>Open the file → click pencil (edit) icon, paste new content</li>
-    <li>Commit changes — Vercel auto-deploys in ~30 seconds</li>
-    <li>Verify at the Vercel URL</li>
-  </ol>
+  <h3>fingering_exercises</h3>
+  <p>Admin-managed tab exercises displayed in Practice → Fingering. Tab is stored as jsonb with one key per string (e, B, G, D, A, E), each containing a space-separated sequence of fret numbers, 'x' for rest, or blank if the string is unused.</p>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><span class="badge pk">PK</span> id</td><td>serial</td><td></td></tr>
+    <tr><td>name</td><td>text</td><td></td></tr>
+    <tr><td>notes</td><td>text</td><td>Nullable. Practice tips.</td></tr>
+    <tr><td>tab</td><td>jsonb</td><td>Keys: e, B, G, D, A, E. Values: space-separated fret sequences e.g. <code>"5 3 1 3 5"</code></td></tr>
+  </table>
+
+  <h2>App Structure</h2>
+  <table>
+    <tr><th>Tab</th><th>Description</th></tr>
+    <tr><td>Songs</td><td>Song list → song detail with chord chips, UG-style chord/lyric display, auto-scroll with configurable speed/delay/compact. Per-song scroll prefs saved to localStorage.</td></tr>
+    <tr><td>Chords</td><td>Chord library grid with SVG chord diagrams. Tap to view larger diagram + toggle to string table. Chord chips on song detail also open this modal.</td></tr>
+    <tr><td>Patterns</td><td>Strumming pattern library with color-coded D/U notation.</td></tr>
+    <tr><td>Practice</td><td>5 subtabs: Chord Cycling, Strumming Drill, Practice Song, Fingering, Timing.</td></tr>
+    <tr><td>Admin</td><td>4 subtabs: Chords, Patterns, Songs, Exercises. Full CRUD with search/edit/copy/delete.</td></tr>
+    <tr><td>Reference</td><td>This document, inlined directly in the app (no iframe, works on iPad PWA).</td></tr>
+  </table>
+
+  <h2>Practice Module</h2>
+  <table>
+    <tr><th>Subtab</th><th>Description</th></tr>
+    <tr><td>Chord Cycling</td><td>Tap chips to build chord sequence. BPM, Beats per Chord, Start Delay (1–20s). 10s countdown shows first chord before clicks start. Audible metronome (high pitch on beat 1), live fingering table, next-chord preview.</td></tr>
+    <tr><td>Strumming Drill</td><td>Tap to select pattern. BPM, Start Delay (1–20s), Repeat Count (default 10). Large slot display highlights active stroke. D=orange, U=green, rest=muted dot. Distinct tones per stroke type. Auto-stops after N cycles.</td></tr>
+    <tr><td>Practice Song</td><td>Link-out to Songs tab.</td></tr>
+    <tr><td>Fingering</td><td>Spider Walk reminder + list of admin-managed tab exercises. Tap exercise to view tab notation display.</td></tr>
+    <tr><td>Timing</td><td>Standalone metronome. BPM, Duration (5s increments to 120s), Start Delay (1–20s). Pendulum-style alternating dot visual, MM:SS countdown, auto-stops.</td></tr>
+  </table>
+
+  <h2>Chord Diagram Renderer</h2>
+  <p>SVG-based, generated from the <code>fingering</code> jsonb. String order: e (top) to high_e (bottom) in display; rendered left-to-right as e, a, d, g, b, high_e. Features: thick nut bar for open-position chords, fret position label for higher chords, X (SVG lines) for muted strings, O (SVG circle) for open strings, filled orange dots for fretted notes. Finger numbers displayed below the diagram. Toggle button in modal to switch between diagram and string table view. Mini diagrams shown on chord cards in the Chords tab grid.</p>
+
+  <h2>Tab Notation (Fingering Exercises)</h2>
+  <p>Standard guitar tab format: 6 horizontal lines, top = high e, bottom = low E. Each column is 3 characters wide for alignment. Fret numbers left-justified, padded with dashes. 'x' = rest/mute, blank string = not played. Entered in Admin as space-separated tokens per string (e.g. <code>5 3 1 3 5 5 5 x 3 3 3 x 5 5 8</code>).</p>
+
+  <h2>UG Text Import</h2>
+  <p>Admin → Songs → paste UG-style text → Parse Text. Extracts title/artist, capo, splits on [Part] markers, classifies chord vs lyric lines, matches part names to the parts table. Populates the parts builder UI for review before saving. Clear button resets the textarea for back-to-back imports.</p>
+
+  <h2>Key Technical Notes</h2>
+  <ul style="padding-left:20px;font-size:0.9rem;line-height:2;">
+    <li>Auto-scroll uses <code>requestAnimationFrame</code> (not setInterval) for iPad compatibility</li>
+    <li>Chord modal is at document level (not inside tab-chords div) so it opens from any tab</li>
+    <li>Per-song scroll prefs stored in localStorage as <code>dg_song_prefs_{songId}</code></li>
+    <li>Supabase join-filter: fetch related IDs first, then use <code>in.(...)</code> filter</li>
+    <li>Song save is a full rewrite of nested structure (delete cascade + reinsert)</li>
+    <li>Reference content is inlined in the app's Reference tab — <code>decent-guitar-reference.html</code> is kept in the repo but not used by the app</li>
+  </ul>
 
   <h2>Feature Backlog</h2>
-
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Practice tab — strumming pattern drilling, song practice mode, finger exercises, standalone metronome/timing (chord change cycling completed in v1.4)</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Visual chord diagram renderer (from fingering jsonb → SVG fretboard grid)</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord edit / delete in Admin</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Strumming pattern edit / delete in Admin</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song versioning — version number per song (same song, multiple variations)</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Song difficulty field — Absolute Beginner, Beginner, Intermediate, Advanced</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Third line type: "comment" — italicized note-only line, distinct styling from chord/lyric</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Insert a line mid-part during admin entry (drag-and-drop or insert-above/below control)</div>
-  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord progressions — new table (notation e.g. I-IV-V), derive actual chords from any home/starting chord via scale-degree math. New subtab in Admin and in Chords tab.</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Chord chips on song detail page — clickable/hover to show fingering (currently only works on Chords tab)</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Part-level strumming pattern display in song detail view</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> iOS home screen icon — currently shows generic "D", needs custom PNG icon set</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Visual "saving…" indicator/spinner on Save Song button for large songs</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Admin Chords and Patterns subtabs show existing records by default (Songs subtab already does this as of v1.4)</div>
-  <div class="backlog-item"><span class="badge tag-ux">UX</span> Clear button next to Parse Text on Add Song import box, for back-to-back imports</div>
+  <div class="backlog-item"><span class="badge tag-feature">Feature</span> Chord progressions — new table (I-IV-V notation), derive actual chords from any home chord via scale-degree math. New subtab in Admin and Chords tab.</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> Supabase RLS + authentication</div>
-  <div class="backlog-item"><span class="badge tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
+  <div class="backlog-item"><span class="badge tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, hammer-on, etc.)</div>
   <div class="backlog-item"><span class="badge tag-data">Data</span> UG text import refinement — broader chord-pattern coverage, edge case handling</div>
-
-  <h2>Practice Module — Chord Change Cycling</h2>
-  <p>The Practice tab's first module supports building and drilling a chord sequence at a set tempo.</p>
-  <ul style="padding-left:20px;font-size:0.9rem;line-height:1.9;">
-    <li><strong>Sequence builder:</strong> tap any chord from your library to add it to the sequence (repeats allowed, unbounded length). Tap a chord in the sequence to remove it.</li>
-    <li><strong>BPM</strong> (default 60) and <strong>Beats per Chord</strong> (default 4) — both user-adjustable.</li>
-    <li><strong>Metronome:</strong> Web Audio API click — higher pitch on beat 1 of each chord, lower pitch on beats 2+. Audio is silent if the device is hardware-muted (e.g. iPad side switch) — this is a device-level setting, not app-controllable.</li>
-    <li><strong>Display:</strong> current chord name (large) + full string-by-string fingering table, beat-progress dots (fill 1→BPC across the current chord's full duration), and a "Next chord" preview shown throughout the current chord's measure — switching only when the chord actually changes, not pre-emptively on the last beat.</li>
-  </ul>
-  <p>This is a UI-only module — no database table writes; it reads from the existing <code>chords</code> table.</p>
-
-  <h2>Ultimate Guitar Text Import</h2>
-  <p>Admin → Songs includes a paste-in text importer. Paste UG-style song text (title/artist header, Capo line, then <code>[Part Name]</code> markers with chord and lyric lines below each) and click Parse Text. The parser:</p>
-  <ul style="padding-left:20px;font-size:0.9rem;line-height:1.9;">
-    <li>Extracts title/artist from a <code>"Title Chords by Artist"</code> header line</li>
-    <li>Extracts capo fret from a <code>"Capo: N"</code> line</li>
-    <li>Splits the body on <code>[Part Name]</code> markers</li>
-    <li>Classifies each line as chord or lyric — chord lines are lines where every whitespace-separated token matches a chord-name pattern (e.g. Em, A, G, D, Cmaj7, F#m)</li>
-    <li>Matches part names to the <code>parts</code> reference table where possible (e.g. "Verse 1" → "Verse"); unmatched parts are left for manual selection</li>
-    <li>Populates the existing parts/lines builder UI — fully editable before saving</li>
-  </ul>
-  <p>This is a UI pre-fill only; it does not touch the database directly. Save Song still goes through the normal save path.</p>
+  <div class="backlog-item"><span class="badge tag-cross">Cross-app</span> Apply in-app Reference tab pattern to all other Decent apps (Decent Eats, Household Finance, Decent Health) — replace encircled-(i) link approach which traps iPad PWA users</div>
 
   <h2>Version History</h2>
-  <div class="version-entry"><span class="version-date">June 2026 — v1.0</span> Initial build. Schema designed and deployed. App built with Songs, Chords, Patterns, Practice (placeholder), and Admin tabs. Song detail view with inline chord markers and auto-scroll lyrics.</div>
-  <div class="version-entry"><span class="version-date">June 2026 — v1.1</span> Fixed song detail load error (Supabase join-filter syntax). Added Admin subtabs (Chords/Patterns/Songs) with search, edit, and copy-as-new. Rebuilt auto-scroll using requestAnimationFrame for iPad compatibility.</div>
-  <div class="version-entry"><span class="version-date">June 2026 — v1.2</span> Redesigned song_lyrics model: changed from inline [Chord] markers to a flat line-based model (line_type: chords/lyrics, ordered by line_order, no pairing/grouping). Chord lines render in green Courier above lyric lines on the song detail page, matching Ultimate Guitar's chord-view style. Admin parts builder rebuilt with per-line C/L toggle.</div>
-  <div class="version-entry"><span class="version-date">June 2026 — v1.3</span> Added Ultimate Guitar text import (paste-in parser) to Admin → Songs. Lowered auto-scroll speed floor for finer control at slow speeds.</div>
-  <div class="version-entry"><span class="version-date">June 2026 — v1.4</span> Song edit/delete in Admin with full nested structure reload (parts, lines, strumming) and cascade delete. Admin Songs subtab now lists all songs by default. Auto-scroll enhancements: numeric speed display, configurable start delay (1–20s, default 10s) with visible countdown, further-lowered speed floor. Compact lyrics display mode toggle. Built first Practice module — Chord Change Cycling with tap-to-build sequence, BPM/BPC controls, audible metronome, and live chord+fingering display with next-chord preview.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.0</span> Initial build. Schema designed and deployed. Songs, Chords, Patterns, Practice (placeholder), Admin tabs.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.1</span> Fixed song detail load error (Supabase join-filter). Admin subtabs (Chords/Patterns/Songs) with search, edit, copy-as-new. iPad-compatible auto-scroll (requestAnimationFrame).</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.2</span> Redesigned song_lyrics to flat line-based model with line_type (chords/lyrics). UG-style chord-above-lyric display in Courier.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.3</span> UG text import (paste-in parser). Lowered auto-scroll speed floor.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.4</span> Song edit/delete in Admin. Auto-scroll: numeric speed display, configurable start delay, compact mode. First Practice module: Chord Change Cycling with audible metronome.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.5</span> Strumming Pattern Drill with repeat count. Practice tab reorganized into 5 subtabs (Chord Cycling, Strumming Drill, Practice Song, Fingering, Timing). Custom iOS home screen icon. Saving spinner. Import Clear button. Reference tab replaces encircled-(i) link — inlined HTML, no iframe, iPad-safe.</div>
+  <div class="version-entry"><span class="version-date">June 2026 — v1.6</span> Chord diagram SVG renderer on chord cards and modal (with toggle to string table). Chord modal moved to document level so it opens from any tab. Chord edit/delete and pattern edit/delete in Admin. Admin Chords and Patterns default-list on load.</div>
+  <div class="version-entry"><span class="version-date">July 2026 — v1.7</span> Song versioning (version field, default 1, shown as badge when >1). Song difficulty field (Absolute Beginner→Advanced, shown as badge). Comment line type in song_lyrics (italic, muted). Mid-part line insertion (+ button per line). Part-level strumming pattern badges in song detail. Per-song localStorage scroll prefs (speed, delay, compact). Fingering exercises: new fingering_exercises table, Admin Exercises subtab, tab notation entry and display in Practice → Fingering.</div>
 </div>
 </body>
 </html>
