@@ -67,7 +67,6 @@
     .badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
     .badge-capo { background: var(--cream-dark); color: var(--brown); }
     .badge-pattern { background: #e8f0e6; color: var(--green); }
-    .badge-difficulty { background: #e8e0f0; color: #5a3a8a; }
 
     /* CHORD CHIPS */
     .chord-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -87,11 +86,9 @@
     .part-label:first-child { margin-top: 0; }
     .chord-row { white-space: pre; color: var(--accent-light); font-weight: 700; line-height: 1.5; min-height: 1.4em; }
     .lyric-row { white-space: pre; color: var(--cream); line-height: 1.6; margin-bottom: 10px; min-height: 1.4em; }
-    .comment-row { font-style: italic; color: rgba(250,247,242,0.5); font-family: 'Lora', serif; font-size: 0.85rem; line-height: 1.6; margin-bottom: 6px; }
     .lyrics-box.compact .part-label { margin-top: 10px; margin-bottom: 2px; }
     .lyrics-box.compact .chord-row { line-height: 1.1; min-height: 1.1em; }
     .lyrics-box.compact .lyric-row { line-height: 1.15; margin-bottom: 2px; min-height: 1.1em; }
-    .lyrics-box.compact .comment-row { margin-bottom: 1px; }
     .line-pair { margin-bottom: 8px; }
 
     /* CHORD LIBRARY */
@@ -558,18 +555,8 @@
       <div class="form-group"><label>Title</label><input type="text" id="song-title" placeholder="Song title" /></div>
       <div class="form-group"><label>Artist</label><input type="text" id="song-artist" /></div>
     </div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+    <div class="form-row">
       <div class="form-group"><label>Capo Fret (blank = none)</label><input type="number" id="song-capo" min="1" max="12" /></div>
-      <div class="form-group"><label>Version</label><input type="number" id="song-version" value="1" min="1" /></div>
-      <div class="form-group"><label>Difficulty</label>
-        <select id="song-difficulty">
-          <option value="">— optional —</option>
-          <option value="Absolute Beginner">Absolute Beginner</option>
-          <option value="Beginner">Beginner</option>
-          <option value="Intermediate">Intermediate</option>
-          <option value="Advanced">Advanced</option>
-        </select>
-      </div>
       <div class="form-group"><label>Default Strumming Pattern</label>
         <select id="song-default-pattern"><option value="">— same throughout (optional) —</option></select>
       </div>
@@ -579,7 +566,7 @@
     <div class="form-group">
       <label>Song Parts &amp; Lyrics</label>
       <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:8px;">
-        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord), <strong style="color:var(--brown-light)">L</strong> (lyric), or <strong style="color:#8a6a2a">N</strong> (note/comment) per line. Use fixed-width spacing to align chords above lyrics. A part may have chord-only or lyric-only lines.
+        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord) or <strong style="color:var(--brown-light)">L</strong> (lyric) per line. Use fixed-width spacing to align chords above lyrics. A part may have chord-only or lyric-only lines.
       </p>
       <div class="part-builder" id="parts-builder"></div>
       <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
@@ -836,13 +823,10 @@ function renderSongList() {
   el.innerHTML = allSongs.map(s => `
     <div class="song-item" onclick="openSong('${s.id}')">
       <div>
-        <h3>${s.title}${s.version > 1 ? ` <span style="font-size:0.75rem;color:var(--brown-light);font-weight:400">v${s.version}</span>` : ''}</h3>
+        <h3>${s.title}</h3>
         ${s.artist ? `<div class="artist">${s.artist}</div>` : ''}
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-        ${s.difficulty ? `<span class="badge badge-difficulty">${s.difficulty}</span>` : ''}
-        ${s.capo_fret ? `<span class="capo-badge">Capo ${s.capo_fret}</span>` : ''}
-      </div>
+      ${s.capo_fret ? `<span class="capo-badge">Capo ${s.capo_fret}</span>` : ''}
     </div>`).join('');
 }
 
@@ -850,7 +834,7 @@ async function openSong(id) {
   try {
     const [song, partsOrder] = await Promise.all([
       api(`songs?id=eq.${id}&select=*,strumming_patterns(notation)`),
-      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name)&order=part_order`)
+      api(`song_parts_order?song_id=eq.${id}&select=*,parts(name),song_part_strumming(strumming_pattern_id,strumming_patterns(notation))&order=part_order`)
     ]);
 
     // Fetch lyrics using the known SPO ids
@@ -858,11 +842,11 @@ async function openSong(id) {
     if (partsOrder.length) {
       const spoIds = partsOrder.map(p => p.id).join(',');
       lyrics = await api(`song_lyrics?song_parts_order_id=in.(${spoIds})&order=song_parts_order_id,line_order`);
-      // Attach part info onto each lyric row for rendering
       lyrics.forEach(l => {
         const spo = partsOrder.find(p => p.id === l.song_parts_order_id);
         l._part_order = spo?.part_order;
         l._part_name = spo?.parts?.name;
+        l._part_strumming = spo?.song_part_strumming?.[0]?.strumming_patterns?.notation || null;
       });
     }
 
@@ -870,7 +854,6 @@ async function openSong(id) {
     currentSong._partsOrder = partsOrder;
     currentSong._lyrics = lyrics;
 
-    // Derive unique chords from chord rows
     const chordSet = new Set();
     lyrics.filter(l => l.line_type === 'chords').forEach(l => {
       if (l.lyric_text && l.lyric_text.trim()) {
@@ -878,6 +861,9 @@ async function openSong(id) {
       }
     });
     currentSong._chords = [...chordSet];
+
+    // Load per-song localStorage prefs (#4)
+    loadSongPrefs(id);
 
     renderSongDetail();
     document.getElementById('song-list-view').style.display = 'none';
@@ -912,19 +898,21 @@ function renderLyrics() {
   lyrics.forEach(l => {
     const key = l._part_order;
     const label = l._part_name || '';
-    if (!partsMap[key]) partsMap[key] = { label, lines: [] };
+    const strumming = l._part_strumming || null;
+    if (!partsMap[key]) partsMap[key] = { label, strumming, lines: [] };
     partsMap[key].lines.push(l);
   });
 
   let html = '';
   Object.keys(partsMap).sort((a,b) => a-b).forEach(k => {
     const p = partsMap[k];
-    html += `<div class="part-label">${p.label}</div>`;
+    const strumBadge = p.strumming
+      ? `<span style="font-size:0.68rem;font-family:'DM Mono',monospace;background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:10px;margin-left:6px;letter-spacing:.05em;">${p.strumming}</span>`
+      : '';
+    html += `<div class="part-label">${p.label}${strumBadge}</div>`;
     p.lines.sort((a,b) => a.line_order - b.line_order).forEach(l => {
       if (l.line_type === 'chords') {
         html += `<div class="chord-row">${escHtml(l.lyric_text || '')}</div>`;
-      } else if (l.line_type === 'comment') {
-        html += `<div class="comment-row">${escHtml(l.lyric_text || '')}</div>`;
       } else {
         html += `<div class="lyric-row">${escHtml(l.lyric_text || '')}</div>`;
       }
@@ -1015,14 +1003,50 @@ function updateScrollSpeed() {
   const val = document.getElementById('scroll-speed').value;
   document.getElementById('scroll-speed-value').textContent = val;
   if (scrolling) { stopScroll(); startScroll(); }
+  saveSongPrefs();
 }
 
 function toggleCompact() {
   const box = document.getElementById('lyrics-box');
   const checked = document.getElementById('compact-toggle').checked;
   box.classList.toggle('compact', checked);
+  saveSongPrefs();
 }
 
+// Also save when delay changes
+document.addEventListener('change', e => {
+  if (e.target.id === 'scroll-delay-select') saveSongPrefs();
+});
+
+// ── PER-SONG PREFS (localStorage) ──
+function songPrefsKey(id) { return `dg_song_prefs_${id}`; }
+
+function saveSongPrefs() {
+  if (!currentSong) return;
+  const prefs = {
+    speed: document.getElementById('scroll-speed').value,
+    delay: document.getElementById('scroll-delay-select').value,
+    compact: document.getElementById('compact-toggle').checked
+  };
+  try { localStorage.setItem(songPrefsKey(currentSong.id), JSON.stringify(prefs)); } catch(e) {}
+}
+
+function loadSongPrefs(id) {
+  try {
+    const raw = localStorage.getItem(songPrefsKey(id));
+    if (!raw) return;
+    const prefs = JSON.parse(raw);
+    if (prefs.speed) {
+      document.getElementById('scroll-speed').value = prefs.speed;
+      document.getElementById('scroll-speed-value').textContent = prefs.speed;
+    }
+    if (prefs.delay) document.getElementById('scroll-delay-select').value = prefs.delay;
+    if (prefs.compact !== undefined) {
+      document.getElementById('compact-toggle').checked = prefs.compact;
+      document.getElementById('lyrics-box').classList.toggle('compact', prefs.compact);
+    }
+  } catch(e) {}
+}
 
 // ── CHORDS ──
 async function loadChords() {
@@ -1450,16 +1474,6 @@ function removeLine(partId, lineId) {
   renderPartsBuilder();
 }
 
-function insertLineAfter(partId, lineId) {
-  const row = partRows.find(r => r.id === partId);
-  if (!row) return;
-  const idx = row.lines.findIndex(l => l.id === lineId);
-  if (idx === -1) return;
-  // Insert a new lyrics line after the current one
-  row.lines.splice(idx + 1, 0, { id: Date.now(), type: 'lyrics', text: '' });
-  renderPartsBuilder();
-}
-
 function updatePartRow(id, field, value) {
   const row = partRows.find(r => r.id === id);
   if (row) row[field] = value;
@@ -1476,10 +1490,7 @@ function toggleLineType(partId, lineId) {
   const row = partRows.find(r => r.id === partId);
   if (!row) return;
   const line = row.lines.find(l => l.id === lineId);
-  if (line) {
-    line.type = line.type === 'chords' ? 'lyrics' : line.type === 'lyrics' ? 'comment' : 'chords';
-    renderPartsBuilder();
-  }
+  if (line) { line.type = line.type === 'chords' ? 'lyrics' : 'chords'; renderPartsBuilder(); }
 }
 
 function renderPartsBuilder() {
@@ -1503,26 +1514,19 @@ function renderPartsBuilder() {
       </div>
       ${row.lines.map(line => {
         const isChord = line.type === 'chords';
-        const isComment = line.type === 'comment';
         const inputStyle = isChord
           ? 'font-family:\'Courier New\',monospace;font-size:0.85rem;background:#f0f8f0;color:var(--green);font-weight:600;padding:7px 9px;border:1px solid #b0d8b0;border-radius:6px;flex:1;'
-          : isComment
-          ? 'font-family:\'Lora\',serif;font-size:0.85rem;font-style:italic;background:#f8f4ec;color:#8a6a2a;padding:7px 9px;border:1px solid #e0d4b0;border-radius:6px;flex:1;'
           : 'font-family:\'Courier New\',monospace;font-size:0.85rem;padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;flex:1;';
-        const placeholder = isChord ? 'Chord line  (e.g.  Em            G       D)' : isComment ? 'Note / comment (e.g. Play slowly here)' : 'Lyric line  (e.g.  All around me are familiar faces)';
-        const btnBg = isChord ? 'var(--green)' : isComment ? '#8a6a2a' : 'var(--brown-light)';
-        const btnLabel = isChord ? 'C' : isComment ? 'N' : 'L';
+        const placeholder = isChord ? 'Chord line  (e.g.  Em            G       D)' : 'Lyric line  (e.g.  All around me are familiar faces)';
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle type (C/L/N)" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${btnBg};color:#fff;">${btnLabel}</button>
+          <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle chord/lyric" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${isChord ? 'var(--green)' : 'var(--brown-light)'};color:#fff;">${isChord ? 'C' : 'L'}</button>
           <input type="text" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" />
-          <button onclick="insertLineAfter(${row.id},${line.id})" title="Insert line below" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;background:var(--cream-dark);color:var(--brown-light);">+</button>
           <button class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:5px 8px;" onclick="removeLine(${row.id},${line.id})"><i class="ti ti-x"></i></button>
         </div>`;
       }).join('')}
       <div style="display:flex;gap:6px;margin-top:8px;">
         <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'chords')">+ Chord line</button>
         <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'lyrics')">+ Lyric line</button>
-        <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'comment')">+ Note</button>
       </div>
     </div>`).join('');
 }
@@ -1550,8 +1554,6 @@ async function editSong(id) {
     document.getElementById('song-title').value = s.title || '';
     document.getElementById('song-artist').value = s.artist || '';
     document.getElementById('song-capo').value = s.capo_fret != null ? s.capo_fret : '';
-    document.getElementById('song-version').value = s.version || 1;
-    document.getElementById('song-difficulty').value = s.difficulty || '';
     document.getElementById('song-source').value = s.source_url || '';
     document.getElementById('song-notes-input').value = s.notes || '';
     document.getElementById('song-default-pattern').value = s.default_strumming_pattern_id || '';
@@ -1581,8 +1583,6 @@ async function editSong(id) {
 function resetSongForm() {
   document.getElementById('song-edit-id').value = '';
   ['song-title','song-artist','song-capo','song-source','song-notes-input'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('song-version').value = '1';
-  document.getElementById('song-difficulty').value = '';
   document.getElementById('song-default-pattern').value = '';
   document.getElementById('song-form-title').textContent = 'Add Song';
   document.getElementById('song-cancel-btn').style.display = 'none';
@@ -1615,8 +1615,6 @@ async function saveSong() {
     title,
     artist: document.getElementById('song-artist').value.trim() || null,
     capo_fret: capoVal ? parseInt(capoVal) : null,
-    version: parseInt(document.getElementById('song-version').value) || 1,
-    difficulty: document.getElementById('song-difficulty').value || null,
     source_url: document.getElementById('song-source').value.trim() || null,
     notes: document.getElementById('song-notes-input').value.trim() || null,
     default_strumming_pattern_id: defaultPatternVal ? parseInt(defaultPatternVal) : null
