@@ -67,6 +67,7 @@
     .badge { font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
     .badge-capo { background: var(--cream-dark); color: var(--brown); }
     .badge-pattern { background: #e8f0e6; color: var(--green); }
+    .badge-difficulty { background: #e8e0f0; color: #5a3a8a; }
 
     /* CHORD CHIPS */
     .chord-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -86,9 +87,11 @@
     .part-label:first-child { margin-top: 0; }
     .chord-row { white-space: pre; color: var(--accent-light); font-weight: 700; line-height: 1.5; min-height: 1.4em; }
     .lyric-row { white-space: pre; color: var(--cream); line-height: 1.6; margin-bottom: 10px; min-height: 1.4em; }
+    .comment-row { font-style: italic; color: rgba(250,247,242,0.5); font-family: 'Lora', serif; font-size: 0.85rem; line-height: 1.6; margin-bottom: 6px; }
     .lyrics-box.compact .part-label { margin-top: 10px; margin-bottom: 2px; }
     .lyrics-box.compact .chord-row { line-height: 1.1; min-height: 1.1em; }
     .lyrics-box.compact .lyric-row { line-height: 1.15; margin-bottom: 2px; min-height: 1.1em; }
+    .lyrics-box.compact .comment-row { margin-bottom: 1px; }
     .line-pair { margin-bottom: 8px; }
 
     /* CHORD LIBRARY */
@@ -271,24 +274,16 @@
   <div class="chord-grid" id="chords-grid">
     <div class="empty" style="grid-column:1/-1;"><i class="ti ti-hand-off"></i><p>No chords yet.</p></div>
   </div>
-</div>
-
-<!-- Chord modal — document-level so it works from any tab -->
-<div class="modal-overlay" id="chord-modal">
-  <div class="modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+  <div class="modal-overlay" id="chord-modal">
+    <div class="modal">
       <h3 id="chord-modal-name"></h3>
-      <button class="btn btn-secondary btn-sm" id="chord-view-toggle" onclick="toggleChordView()">Show table</button>
-    </div>
-    <div id="chord-diagram-view" style="display:flex;justify-content:center;"></div>
-    <div id="chord-table-view" style="display:none;">
       <table class="string-table" id="chord-modal-table">
         <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
         <tbody></tbody>
       </table>
+      <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
     </div>
-    <div id="chord-modal-notes" style="margin-top:10px;font-size:0.82rem;color:var(--brown-light);"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('chord-modal')">Close</button></div>
   </div>
 </div>
 
@@ -563,8 +558,18 @@
       <div class="form-group"><label>Title</label><input type="text" id="song-title" placeholder="Song title" /></div>
       <div class="form-group"><label>Artist</label><input type="text" id="song-artist" /></div>
     </div>
-    <div class="form-row">
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
       <div class="form-group"><label>Capo Fret (blank = none)</label><input type="number" id="song-capo" min="1" max="12" /></div>
+      <div class="form-group"><label>Version</label><input type="number" id="song-version" value="1" min="1" /></div>
+      <div class="form-group"><label>Difficulty</label>
+        <select id="song-difficulty">
+          <option value="">— optional —</option>
+          <option value="Absolute Beginner">Absolute Beginner</option>
+          <option value="Beginner">Beginner</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Advanced">Advanced</option>
+        </select>
+      </div>
       <div class="form-group"><label>Default Strumming Pattern</label>
         <select id="song-default-pattern"><option value="">— same throughout (optional) —</option></select>
       </div>
@@ -574,7 +579,7 @@
     <div class="form-group">
       <label>Song Parts &amp; Lyrics</label>
       <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:8px;">
-        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord) or <strong style="color:var(--brown-light)">L</strong> (lyric) per line. Use fixed-width spacing to align chords above lyrics. A part may have chord-only or lyric-only lines.
+        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord), <strong style="color:var(--brown-light)">L</strong> (lyric), or <strong style="color:#8a6a2a">N</strong> (note/comment) per line. Use fixed-width spacing to align chords above lyrics. A part may have chord-only or lyric-only lines.
       </p>
       <div class="part-builder" id="parts-builder"></div>
       <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
@@ -831,10 +836,13 @@ function renderSongList() {
   el.innerHTML = allSongs.map(s => `
     <div class="song-item" onclick="openSong('${s.id}')">
       <div>
-        <h3>${s.title}</h3>
+        <h3>${s.title}${s.version > 1 ? ` <span style="font-size:0.75rem;color:var(--brown-light);font-weight:400">v${s.version}</span>` : ''}</h3>
         ${s.artist ? `<div class="artist">${s.artist}</div>` : ''}
       </div>
-      ${s.capo_fret ? `<span class="capo-badge">Capo ${s.capo_fret}</span>` : ''}
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+        ${s.difficulty ? `<span class="badge badge-difficulty">${s.difficulty}</span>` : ''}
+        ${s.capo_fret ? `<span class="capo-badge">Capo ${s.capo_fret}</span>` : ''}
+      </div>
     </div>`).join('');
 }
 
@@ -882,6 +890,8 @@ function renderSongDetail() {
   document.getElementById('detail-title').textContent = s.title;
   document.getElementById('detail-artist').textContent = s.artist || '';
   const badges = [];
+  if (s.version > 1) badges.push(`<span class="badge badge-capo">v${s.version}</span>`);
+  if (s.difficulty) badges.push(`<span class="badge badge-difficulty">${s.difficulty}</span>`);
   if (s.capo_fret) badges.push(`<span class="badge badge-capo">Capo ${s.capo_fret}</span>`);
   if (s.strumming_patterns?.notation) badges.push(`<span class="badge badge-pattern">${s.strumming_patterns.notation}</span>`);
   document.getElementById('detail-badges').innerHTML = badges.join('');
@@ -913,6 +923,8 @@ function renderLyrics() {
     p.lines.sort((a,b) => a.line_order - b.line_order).forEach(l => {
       if (l.line_type === 'chords') {
         html += `<div class="chord-row">${escHtml(l.lyric_text || '')}</div>`;
+      } else if (l.line_type === 'comment') {
+        html += `<div class="comment-row">${escHtml(l.lyric_text || '')}</div>`;
       } else {
         html += `<div class="lyric-row">${escHtml(l.lyric_text || '')}</div>`;
       }
@@ -1026,94 +1038,21 @@ function renderChordGrid() {
   el.innerHTML = allChords.map(c => `
     <div class="chord-card" onclick="openChordModal(${c.id})">
       <h3>${c.name}</h3>
-      ${renderChordDiagramSVG(c.fingering, 120, 140)}
+      ${renderMiniStrings(c.fingering)}
     </div>`).join('');
 }
 
-// ── CHORD DIAGRAM RENDERER ──
-const DIAGRAM_STRINGS = ['e','a','d','g','b','high_e'];
-
-function renderChordDiagramSVG(fingering, width, height) {
-  if (!fingering) return '';
-  const f = fingering;
-  const numStrings = 6;
-  const numFrets = 5;
-  const markerSize = 10;
-  const markerR = markerSize * 0.42;   // radius of X/O marker
-  const nutH = 5;                       // nut bar height
-  const markerGap = 4;                  // gap between bottom of marker and top of nut
-  const padTop = markerR * 2 + markerGap + nutH + 6; // enough room for markers above nut
-  const padLeft = 18;
-  const padRight = 8;
-  const padBottom = markerSize + 10;
-  const gridW = width - padLeft - padRight;
-  const gridH = height - padTop - padBottom;
-  const ss = gridW / (numStrings - 1);
-  const fs = gridH / numFrets;
-  const dotR = Math.min(ss, fs) * 0.33;
-
-  const frettedFrets = DIAGRAM_STRINGS.map(s => f[s]?.fret).filter(v => v != null && v > 0);
-  const minFret = frettedFrets.length ? Math.min(...frettedFrets) : 1;
-  const showNut = minFret <= 2;
-  const windowStart = showNut ? 1 : minFret;
-
-  // markerY: center of X/O markers — sits above nut with clearance
-  const nutY = padTop - nutH - 1;  // top of nut bar
-  const markerY = nutY - markerGap - markerR;  // center of marker
-
-  let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
-
-  // Nut or position label
-  if (showNut) {
-    svg += `<rect x="${padLeft}" y="${nutY}" width="${gridW}" height="${nutH}" rx="2" fill="#3d2b1f"/>`;
-  } else {
-    svg += `<text x="${padLeft - 4}" y="${padTop + fs * 0.65}" text-anchor="end" font-size="8" fill="#7a5c4a" font-family="DM Mono,monospace">${windowStart}fr</text>`;
-  }
-
-  // Fret lines
-  for (let i = 0; i <= numFrets; i++) {
-    const y = padTop + i * fs;
-    svg += `<line x1="${padLeft}" y1="${y}" x2="${padLeft + gridW}" y2="${y}" stroke="#7a5c4a" stroke-width="0.7" opacity="0.5"/>`;
-  }
-
-  // String lines
-  for (let i = 0; i < numStrings; i++) {
-    const x = padLeft + i * ss;
-    svg += `<line x1="${x}" y1="${padTop}" x2="${x}" y2="${padTop + gridH}" stroke="#3d2b1f" stroke-width="0.9" opacity="0.5"/>`;
-  }
-
-  // Markers per string
-  DIAGRAM_STRINGS.forEach((s, i) => {
+function renderMiniStrings(f) {
+  if (!f) return '';
+  return STRINGS.map(s => {
     const d = f[s] || {};
-    const x = padLeft + i * ss;
-
-    if (!d.plucked) {
-      // X — two diagonal lines
-      svg += `<line x1="${x-markerR}" y1="${markerY-markerR}" x2="${x+markerR}" y2="${markerY+markerR}" stroke="#7a5c4a" stroke-width="1.5" stroke-linecap="round"/>`;
-      svg += `<line x1="${x+markerR}" y1="${markerY-markerR}" x2="${x-markerR}" y2="${markerY+markerR}" stroke="#7a5c4a" stroke-width="1.5" stroke-linecap="round"/>`;
-    } else if (!d.fret || d.fret === 0) {
-      // O — circle outline
-      svg += `<circle cx="${x}" cy="${markerY}" r="${markerR}" fill="none" stroke="#7a5c4a" stroke-width="1.5"/>`;
-    }
-
-    // Finger dot
-    if (d.plucked && d.fret && d.fret > 0) {
-      const fretInWindow = d.fret - windowStart + 1;
-      if (fretInWindow >= 1 && fretInWindow <= numFrets) {
-        const cy = padTop + (fretInWindow - 0.5) * fs;
-        svg += `<circle cx="${x}" cy="${cy}" r="${dotR}" fill="#c0622a"/>`;
-      }
-    }
-
-    // Finger number below grid
-    if (d.plucked && d.finger) {
-      const numY = padTop + gridH + markerSize + 2;
-      svg += `<text x="${x}" y="${numY}" text-anchor="middle" font-size="${markerSize}" font-weight="700" fill="#3d2b1f" font-family="DM Sans,sans-serif">${d.finger}</text>`;
-    }
-  });
-
-  svg += `</svg>`;
-  return svg;
+    const fret = d.plucked ? (d.fret ? `${d.fret}` : 'O') : '✕';
+    return `<div style="font-size:0.72rem;display:flex;gap:4px;align-items:center;">
+      <span style="width:32px;color:${STRING_COLORS[s]};font-weight:600">${STRING_LABELS[s]}</span>
+      <span style="font-family:'DM Mono',monospace">${fret}</span>
+      ${d.finger ? `<span style="color:var(--brown-light);font-size:0.68rem">(${d.finger})</span>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function openChordModal(id) {
@@ -1132,24 +1071,10 @@ function showChordByName(name) {
   }
 }
 
-let chordModalViewMode = 'diagram';
-
-function toggleChordView() {
-  chordModalViewMode = chordModalViewMode === 'diagram' ? 'table' : 'diagram';
-  document.getElementById('chord-diagram-view').style.display = chordModalViewMode === 'diagram' ? 'flex' : 'none';
-  document.getElementById('chord-table-view').style.display = chordModalViewMode === 'table' ? 'block' : 'none';
-  document.getElementById('chord-view-toggle').textContent = chordModalViewMode === 'diagram' ? 'Show table' : 'Show diagram';
-}
-
 function showChordModal(c) {
-  chordModalViewMode = 'diagram';
   document.getElementById('chord-modal-name').textContent = c.name;
-  document.getElementById('chord-diagram-view').style.display = 'flex';
-  document.getElementById('chord-diagram-view').innerHTML = renderChordDiagramSVG(c.fingering, 200, 220);
-  document.getElementById('chord-table-view').style.display = 'none';
-  document.getElementById('chord-view-toggle').textContent = 'Show table';
   const tbody = document.querySelector('#chord-modal-table tbody');
-  tbody.innerHTML = DIAGRAM_STRINGS.map(s => {
+  tbody.innerHTML = STRINGS.map(s => {
     const d = (c.fingering || {})[s] || {};
     return `<tr>
       <td><span style="color:${STRING_COLORS[s]};font-weight:600">${STRING_LABELS[s]}</span></td>
@@ -1525,6 +1450,16 @@ function removeLine(partId, lineId) {
   renderPartsBuilder();
 }
 
+function insertLineAfter(partId, lineId) {
+  const row = partRows.find(r => r.id === partId);
+  if (!row) return;
+  const idx = row.lines.findIndex(l => l.id === lineId);
+  if (idx === -1) return;
+  // Insert a new lyrics line after the current one
+  row.lines.splice(idx + 1, 0, { id: Date.now(), type: 'lyrics', text: '' });
+  renderPartsBuilder();
+}
+
 function updatePartRow(id, field, value) {
   const row = partRows.find(r => r.id === id);
   if (row) row[field] = value;
@@ -1541,7 +1476,10 @@ function toggleLineType(partId, lineId) {
   const row = partRows.find(r => r.id === partId);
   if (!row) return;
   const line = row.lines.find(l => l.id === lineId);
-  if (line) { line.type = line.type === 'chords' ? 'lyrics' : 'chords'; renderPartsBuilder(); }
+  if (line) {
+    line.type = line.type === 'chords' ? 'lyrics' : line.type === 'lyrics' ? 'comment' : 'chords';
+    renderPartsBuilder();
+  }
 }
 
 function renderPartsBuilder() {
@@ -1565,19 +1503,26 @@ function renderPartsBuilder() {
       </div>
       ${row.lines.map(line => {
         const isChord = line.type === 'chords';
+        const isComment = line.type === 'comment';
         const inputStyle = isChord
           ? 'font-family:\'Courier New\',monospace;font-size:0.85rem;background:#f0f8f0;color:var(--green);font-weight:600;padding:7px 9px;border:1px solid #b0d8b0;border-radius:6px;flex:1;'
+          : isComment
+          ? 'font-family:\'Lora\',serif;font-size:0.85rem;font-style:italic;background:#f8f4ec;color:#8a6a2a;padding:7px 9px;border:1px solid #e0d4b0;border-radius:6px;flex:1;'
           : 'font-family:\'Courier New\',monospace;font-size:0.85rem;padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;flex:1;';
-        const placeholder = isChord ? 'Chord line  (e.g.  Em            G       D)' : 'Lyric line  (e.g.  All around me are familiar faces)';
+        const placeholder = isChord ? 'Chord line  (e.g.  Em            G       D)' : isComment ? 'Note / comment (e.g. Play slowly here)' : 'Lyric line  (e.g.  All around me are familiar faces)';
+        const btnBg = isChord ? 'var(--green)' : isComment ? '#8a6a2a' : 'var(--brown-light)';
+        const btnLabel = isChord ? 'C' : isComment ? 'N' : 'L';
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-          <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle chord/lyric" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${isChord ? 'var(--green)' : 'var(--brown-light)'};color:#fff;">${isChord ? 'C' : 'L'}</button>
+          <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle type (C/L/N)" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${btnBg};color:#fff;">${btnLabel}</button>
           <input type="text" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" />
+          <button onclick="insertLineAfter(${row.id},${line.id})" title="Insert line below" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;background:var(--cream-dark);color:var(--brown-light);">+</button>
           <button class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:5px 8px;" onclick="removeLine(${row.id},${line.id})"><i class="ti ti-x"></i></button>
         </div>`;
       }).join('')}
       <div style="display:flex;gap:6px;margin-top:8px;">
         <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'chords')">+ Chord line</button>
         <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'lyrics')">+ Lyric line</button>
+        <button class="add-line-btn" style="flex:1;" onclick="addLine(${row.id},'comment')">+ Note</button>
       </div>
     </div>`).join('');
 }
@@ -1605,6 +1550,8 @@ async function editSong(id) {
     document.getElementById('song-title').value = s.title || '';
     document.getElementById('song-artist').value = s.artist || '';
     document.getElementById('song-capo').value = s.capo_fret != null ? s.capo_fret : '';
+    document.getElementById('song-version').value = s.version || 1;
+    document.getElementById('song-difficulty').value = s.difficulty || '';
     document.getElementById('song-source').value = s.source_url || '';
     document.getElementById('song-notes-input').value = s.notes || '';
     document.getElementById('song-default-pattern').value = s.default_strumming_pattern_id || '';
@@ -1634,6 +1581,8 @@ async function editSong(id) {
 function resetSongForm() {
   document.getElementById('song-edit-id').value = '';
   ['song-title','song-artist','song-capo','song-source','song-notes-input'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('song-version').value = '1';
+  document.getElementById('song-difficulty').value = '';
   document.getElementById('song-default-pattern').value = '';
   document.getElementById('song-form-title').textContent = 'Add Song';
   document.getElementById('song-cancel-btn').style.display = 'none';
@@ -1666,6 +1615,8 @@ async function saveSong() {
     title,
     artist: document.getElementById('song-artist').value.trim() || null,
     capo_fret: capoVal ? parseInt(capoVal) : null,
+    version: parseInt(document.getElementById('song-version').value) || 1,
+    difficulty: document.getElementById('song-difficulty').value || null,
     source_url: document.getElementById('song-source').value.trim() || null,
     notes: document.getElementById('song-notes-input').value.trim() || null,
     default_strumming_pattern_id: defaultPatternVal ? parseInt(defaultPatternVal) : null
