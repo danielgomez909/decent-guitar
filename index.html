@@ -1036,28 +1036,34 @@ function renderChordDiagramSVG(fingering, width, height) {
   const f = fingering;
   const numStrings = 6;
   const numFrets = 5;
-  const markerSize = 10; // size of X/O/finger number text — consistent
-  const padTop = markerSize + 10; // space above nut for X/O
+  const markerSize = 10;
+  const markerR = markerSize * 0.42;   // radius of X/O marker
+  const nutH = 5;                       // nut bar height
+  const markerGap = 4;                  // gap between bottom of marker and top of nut
+  const padTop = markerR * 2 + markerGap + nutH + 6; // enough room for markers above nut
   const padLeft = 18;
   const padRight = 8;
-  const padBottom = markerSize + 10; // space below grid for finger numbers
+  const padBottom = markerSize + 10;
   const gridW = width - padLeft - padRight;
   const gridH = height - padTop - padBottom;
-  const ss = gridW / (numStrings - 1); // string spacing
-  const fs = gridH / numFrets;         // fret spacing
+  const ss = gridW / (numStrings - 1);
+  const fs = gridH / numFrets;
   const dotR = Math.min(ss, fs) * 0.33;
 
-  // Determine fret window
   const frettedFrets = DIAGRAM_STRINGS.map(s => f[s]?.fret).filter(v => v != null && v > 0);
   const minFret = frettedFrets.length ? Math.min(...frettedFrets) : 1;
   const showNut = minFret <= 2;
   const windowStart = showNut ? 1 : minFret;
 
+  // markerY: center of X/O markers — sits above nut with clearance
+  const nutY = padTop - nutH - 1;  // top of nut bar
+  const markerY = nutY - markerGap - markerR;  // center of marker
+
   let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
 
   // Nut or position label
   if (showNut) {
-    svg += `<rect x="${padLeft}" y="${padTop - 4}" width="${gridW}" height="5" rx="2" fill="#3d2b1f"/>`;
+    svg += `<rect x="${padLeft}" y="${nutY}" width="${gridW}" height="${nutH}" rx="2" fill="#3d2b1f"/>`;
   } else {
     svg += `<text x="${padLeft - 4}" y="${padTop + fs * 0.65}" text-anchor="end" font-size="8" fill="#7a5c4a" font-family="DM Mono,monospace">${windowStart}fr</text>`;
   }
@@ -1078,20 +1084,17 @@ function renderChordDiagramSVG(fingering, width, height) {
   DIAGRAM_STRINGS.forEach((s, i) => {
     const d = f[s] || {};
     const x = padLeft + i * ss;
-    const markerY = padTop - 5; // baseline for X/O above nut
 
     if (!d.plucked) {
-      // X — two diagonal SVG lines, same visual size as O
-      const r = markerSize * 0.38;
-      svg += `<line x1="${x-r}" y1="${markerY-r}" x2="${x+r}" y2="${markerY+r}" stroke="#7a5c4a" stroke-width="1.5" stroke-linecap="round"/>`;
-      svg += `<line x1="${x+r}" y1="${markerY-r}" x2="${x-r}" y2="${markerY+r}" stroke="#7a5c4a" stroke-width="1.5" stroke-linecap="round"/>`;
+      // X — two diagonal lines
+      svg += `<line x1="${x-markerR}" y1="${markerY-markerR}" x2="${x+markerR}" y2="${markerY+markerR}" stroke="#7a5c4a" stroke-width="1.5" stroke-linecap="round"/>`;
+      svg += `<line x1="${x+markerR}" y1="${markerY-markerR}" x2="${x-markerR}" y2="${markerY+markerR}" stroke="#7a5c4a" stroke-width="1.5" stroke-linecap="round"/>`;
     } else if (!d.fret || d.fret === 0) {
-      // O — circle outline, same radius as X
-      const r = markerSize * 0.38;
-      svg += `<circle cx="${x}" cy="${markerY}" r="${r}" fill="none" stroke="#7a5c4a" stroke-width="1.5"/>`;
+      // O — circle outline
+      svg += `<circle cx="${x}" cy="${markerY}" r="${markerR}" fill="none" stroke="#7a5c4a" stroke-width="1.5"/>`;
     }
 
-    // Finger dot on fret
+    // Finger dot
     if (d.plucked && d.fret && d.fret > 0) {
       const fretInWindow = d.fret - windowStart + 1;
       if (fretInWindow >= 1 && fretInWindow <= numFrets) {
@@ -1100,7 +1103,7 @@ function renderChordDiagramSVG(fingering, width, height) {
       }
     }
 
-    // Finger number below grid (same size as X/O markers)
+    // Finger number below grid
     if (d.plucked && d.finger) {
       const numY = padTop + gridH + markerSize + 2;
       svg += `<text x="${x}" y="${numY}" text-anchor="middle" font-size="${markerSize}" font-weight="700" fill="#3d2b1f" font-family="DM Sans,sans-serif">${d.finger}</text>`;
