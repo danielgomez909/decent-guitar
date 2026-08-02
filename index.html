@@ -510,6 +510,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="saveChord()">Save Chord</button>
       <button class="btn btn-secondary" id="chord-cancel-btn" onclick="resetChordForm()" style="display:none">Cancel</button>
+      <button class="btn btn-danger" id="chord-delete-btn" onclick="deleteChord()" style="display:none">Delete Chord</button>
     </div>
   </div>
 
@@ -528,6 +529,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="savePattern()">Save Pattern</button>
       <button class="btn btn-secondary" id="pattern-cancel-btn" onclick="resetPatternForm()" style="display:none">Cancel</button>
+      <button class="btn btn-danger" id="pattern-delete-btn" onclick="deletePattern()" style="display:none">Delete Pattern</button>
     </div>
   </div>
 
@@ -1115,9 +1117,8 @@ async function initAdmin() {
 // ── SEARCH ──
 function searchChords() {
   const q = document.getElementById('chord-search-input').value.toLowerCase();
-  const results = allChords.filter(c => c.name.toLowerCase().includes(q));
+  const results = q ? allChords.filter(c => c.name.toLowerCase().includes(q)) : allChords;
   const el = document.getElementById('chord-search-results');
-  if (!q) { el.innerHTML = ''; return; }
   if (!results.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light)">No chords found.</p>'; return; }
   el.innerHTML = results.map(c => `
     <div class="search-result-item">
@@ -1131,9 +1132,8 @@ function searchChords() {
 
 function searchPatterns() {
   const q = document.getElementById('pattern-search-input').value.toLowerCase();
-  const results = allPatterns.filter(p => p.notation.toLowerCase().includes(q));
+  const results = q ? allPatterns.filter(p => p.notation.toLowerCase().includes(q)) : allPatterns;
   const el = document.getElementById('pattern-search-results');
-  if (!q) { el.innerHTML = ''; return; }
   if (!results.length) { el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light)">No patterns found.</p>'; return; }
   el.innerHTML = results.map(p => `
     <div class="search-result-item">
@@ -1171,6 +1171,7 @@ function editChord(id) {
   document.getElementById('chord-notes').value = c.notes || '';
   document.getElementById('chord-form-title').textContent = `Edit Chord: ${c.name}`;
   document.getElementById('chord-cancel-btn').style.display = '';
+  document.getElementById('chord-delete-btn').style.display = '';
   loadFingeringIntoGrid(c.fingering);
   document.getElementById('chord-search-input').value = '';
   document.getElementById('chord-search-results').innerHTML = '';
@@ -1185,6 +1186,7 @@ function copyChord(id) {
   document.getElementById('chord-notes').value = c.notes || '';
   document.getElementById('chord-form-title').textContent = 'Add Chord (copied)';
   document.getElementById('chord-cancel-btn').style.display = '';
+  document.getElementById('chord-delete-btn').style.display = 'none';
   loadFingeringIntoGrid(c.fingering);
   document.getElementById('chord-name').scrollIntoView({ behavior: 'smooth' });
 }
@@ -1195,7 +1197,22 @@ function resetChordForm() {
   document.getElementById('chord-notes').value = '';
   document.getElementById('chord-form-title').textContent = 'Add Chord';
   document.getElementById('chord-cancel-btn').style.display = 'none';
+  document.getElementById('chord-delete-btn').style.display = 'none';
   initFingeringGrid();
+}
+
+async function deleteChord() {
+  const id = document.getElementById('chord-edit-id').value;
+  const name = document.getElementById('chord-name').value;
+  if (!id) return;
+  if (!confirm(`Delete chord "${name}"? This cannot be undone.`)) return;
+  try {
+    await api(`chords?id=eq.${id}`, 'DELETE');
+    toast(`"${name}" deleted`);
+    allChords = await api('chords?select=*&order=name');
+    resetChordForm();
+    searchChords();
+  } catch(e) { toast('Error deleting: ' + e.message); }
 }
 
 function loadFingeringIntoGrid(fingering) {
@@ -1218,6 +1235,7 @@ function editPattern(id) {
   document.getElementById('pattern-notes-input').value = p.notes || '';
   document.getElementById('pattern-form-title').textContent = `Edit Pattern: ${p.notation}`;
   document.getElementById('pattern-cancel-btn').style.display = '';
+  document.getElementById('pattern-delete-btn').style.display = '';
   document.getElementById('pattern-search-input').value = '';
   document.getElementById('pattern-search-results').innerHTML = '';
   document.getElementById('pattern-notation').scrollIntoView({ behavior: 'smooth' });
@@ -1231,6 +1249,7 @@ function copyPattern(id) {
   document.getElementById('pattern-notes-input').value = p.notes || '';
   document.getElementById('pattern-form-title').textContent = 'Add Pattern (copied)';
   document.getElementById('pattern-cancel-btn').style.display = '';
+  document.getElementById('pattern-delete-btn').style.display = 'none';
   document.getElementById('pattern-notation').scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -1240,6 +1259,21 @@ function resetPatternForm() {
   document.getElementById('pattern-notes-input').value = '';
   document.getElementById('pattern-form-title').textContent = 'Add Pattern';
   document.getElementById('pattern-cancel-btn').style.display = 'none';
+  document.getElementById('pattern-delete-btn').style.display = 'none';
+}
+
+async function deletePattern() {
+  const id = document.getElementById('pattern-edit-id').value;
+  const notation = document.getElementById('pattern-notation').value;
+  if (!id) return;
+  if (!confirm(`Delete pattern "${notation}"? This cannot be undone.`)) return;
+  try {
+    await api(`strumming_patterns?id=eq.${id}`, 'DELETE');
+    toast(`"${notation}" deleted`);
+    allPatterns = await api('strumming_patterns?select=*&order=notation');
+    resetPatternForm();
+    searchPatterns();
+  } catch(e) { toast('Error deleting: ' + e.message); }
 }
 
 // ── FINGERING GRID ──
