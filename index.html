@@ -1300,19 +1300,25 @@ function renderTabDisplay(tab) {
   });
   if (maxCols === 0) return '<p style="color:rgba(250,247,242,0.5);font-size:0.85rem;">No tab data.</p>';
 
+  // Each column is 3 chars wide: token left-padded with dashes to fill 3 chars
+  // e.g. "5" -> "5--", "12" -> "12-", "x" -> "x--", empty -> "---"
   const lines = TAB_STRINGS.map(s => {
     const tokens = parsed[s];
     let line = `<span style="color:var(--accent-light);font-weight:700;user-select:none;">${s}|</span>`;
     for (let i = 0; i < maxCols; i++) {
       const tok = tokens[i] || '';
+      let col, color;
       if (!tok || tok === '-') {
-        line += `<span style="color:rgba(250,247,242,0.25);">--</span>`;
+        col = '---';
+        color = 'rgba(250,247,242,0.2)';
       } else if (tok === 'x') {
-        line += `<span style="color:rgba(250,247,242,0.45);">x-</span>`;
+        col = 'x--';
+        color = 'rgba(250,247,242,0.45)';
       } else {
-        const fretStr = tok.length > 1 ? tok + '-' : tok + '--';
-        line += `<span style="color:var(--cream);">${fretStr}</span>`;
+        col = (tok + '---').slice(0, 3);
+        color = 'var(--cream)';
       }
+      line += `<span style="color:${color};">${col}</span>`;
     }
     line += `<span style="color:var(--accent-light);font-weight:700;user-select:none;">|</span>`;
     return `<div style="font-family:'Courier New',monospace;font-size:1rem;line-height:1.9;white-space:nowrap;">${line}</div>`;
