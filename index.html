@@ -68,6 +68,16 @@
     .badge-capo { background: var(--cream-dark); color: var(--brown); }
     .badge-pattern { background: #e8f0e6; color: var(--green); }
     .badge-difficulty { background: #e8e0f0; color: #5a3a8a; }
+    .badge-status-1 { background: #e8e8e8; color: #666; }
+    .badge-status-2 { background: #fde8dc; color: #c0622a; }
+    .badge-status-3 { background: #fdf3dc; color: #a07020; }
+    .badge-status-4 { background: #e8f0e6; color: #4a6741; }
+    .badge-status-5 { background: #dce8fa; color: #2a5a8a; }
+    .badge-status-6 { background: #e8e0f0; color: #5a3a8a; }
+    .badge-status-7 { background: #f0e8dc; color: #8a4a1a; font-weight:700; }
+    .status-chip { display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;padding:4px 10px;border-radius:20px;font-weight:500;cursor:pointer;border:1.5px solid transparent;transition:all .15s; }
+    .status-chip.active { border-color: var(--brown); }
+    .notes-preview { font-size:0.78rem;color:var(--brown-light);margin-top:3px;font-style:italic; }
     .comment-row { font-style: italic; color: rgba(250,247,242,0.5); font-family: 'Lora', serif; font-size: 0.85rem; line-height: 1.6; margin-bottom: 6px; }
 
     /* CHORD CHIPS */
@@ -226,7 +236,14 @@
 <!-- SONGS TAB -->
 <div id="tab-songs" class="tab-content active">
   <div id="song-list-view">
-    <div class="section-header"><h2>Songs</h2></div>
+    <div class="section-header">
+      <h2>Songs</h2>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="cycleSongNotesMode()" id="notes-mode-btn">Notes: Off</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleSongSort()" id="sort-btn">Sort: Title</button>
+      </div>
+    </div>
+    <div id="status-filter-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
     <div id="songs-list"><div class="empty"><i class="ti ti-music-off"></i><p>No songs yet. Add one in Admin.</p></div></div>
   </div>
   <div id="song-detail-view" class="song-detail">
@@ -235,6 +252,29 @@
       <h2 id="detail-title"></h2>
       <div class="artist" id="detail-artist"></div>
       <div class="song-badges" id="detail-badges"></div>
+    </div>
+    <div style="margin-bottom:16px;background:#fff;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);">Learning Progress</div>
+        <button class="btn btn-primary btn-sm" onclick="saveLearningProgress()">Save</button>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label>Status</label>
+        <select id="detail-status-select" style="font-size:0.9rem;">
+          <option value="">— not set —</option>
+          <option value="1">1 — Backlog</option>
+          <option value="2">2 — Just Started</option>
+          <option value="3">3 — Practicing Pieces</option>
+          <option value="4">4 — Practicing the Song</option>
+          <option value="5">5 — Running It Through</option>
+          <option value="6">6 — Mastered</option>
+          <option value="7">7 — Memorized</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Learning Notes</label>
+        <textarea id="detail-learning-notes" rows="3" placeholder="Notes for your next practice session…" style="font-size:0.88rem;resize:vertical;"></textarea>
+      </div>
     </div>
     <div style="margin-bottom:16px;">
       <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);margin-bottom:6px;">Chords in this song</div>
@@ -825,6 +865,20 @@ const STRING_LABELS = { e:'E', a:'A', d:'D', g:'G', b:'B', high_e:'Hi E' };
 const STRING_COLORS = { e:'#c0622a', a:'#a0522d', d:'#8b6914', g:'#4a6741', b:'#2a5a8a', high_e:'#7a3a8a' };
 
 let allSongs = [], allChords = [], allPatterns = [], allParts = [], allExercises = [];
+
+const LEARNING_STATUSES = {
+  1: { label: 'Backlog',              cls: 'badge-status-1' },
+  2: { label: 'Just Started',         cls: 'badge-status-2' },
+  3: { label: 'Practicing Pieces',    cls: 'badge-status-3' },
+  4: { label: 'Practicing the Song',  cls: 'badge-status-4' },
+  5: { label: 'Running It Through',   cls: 'badge-status-5' },
+  6: { label: 'Mastered',             cls: 'badge-status-6' },
+  7: { label: 'Memorized',            cls: 'badge-status-7' },
+};
+
+let songNotesMode = 'hidden'; // 'hidden' | 'preview' | 'full'
+let songSortMode = 'title';   // 'title' | 'status'
+let activeStatusFilters = new Set(); // empty = show all
 let currentSong = null;
 let scrolling = false;
 let scrollRAF = null;
@@ -898,24 +952,109 @@ function toast(msg) {
 async function loadSongs() {
   try {
     allSongs = await api('songs?select=*,strumming_patterns(notation)&order=title');
+    renderStatusFilterChips();
     renderSongList();
   } catch(e) { toast('Error loading songs'); }
 }
 
+function renderStatusFilterChips() {
+  const el = document.getElementById('status-filter-chips');
+  if (!el) return;
+  const noStatusCount = allSongs.filter(s => !s.learning_status).length;
+  let html = Object.entries(LEARNING_STATUSES).map(([num, st]) => {
+    const count = allSongs.filter(s => s.learning_status == num).length;
+    if (count === 0) return '';
+    const active = activeStatusFilters.has(parseInt(num));
+    return `<span class="status-chip ${st.cls}${active ? ' active' : ''}" onclick="toggleStatusFilter(${num})">${st.label} <span style="opacity:0.7">${count}</span></span>`;
+  }).join('');
+  if (noStatusCount > 0) {
+    const active = activeStatusFilters.has(0);
+    html += `<span class="status-chip badge-status-1${active ? ' active' : ''}" onclick="toggleStatusFilter(0)">No status <span style="opacity:0.7">${noStatusCount}</span></span>`;
+  }
+  if (activeStatusFilters.size > 0) {
+    html += `<span class="status-chip" style="background:none;color:var(--brown-light);border-color:var(--cream-dark);" onclick="clearStatusFilters()">Clear filters</span>`;
+  }
+  el.innerHTML = html;
+}
+
+function toggleStatusFilter(num) {
+  if (activeStatusFilters.has(num)) activeStatusFilters.delete(num);
+  else activeStatusFilters.add(num);
+  renderStatusFilterChips();
+  renderSongList();
+}
+
+function clearStatusFilters() {
+  activeStatusFilters.clear();
+  renderStatusFilterChips();
+  renderSongList();
+}
+
+function cycleSongNotesMode() {
+  songNotesMode = songNotesMode === 'hidden' ? 'preview' : songNotesMode === 'preview' ? 'full' : 'hidden';
+  const btn = document.getElementById('notes-mode-btn');
+  if (btn) btn.textContent = `Notes: ${songNotesMode.charAt(0).toUpperCase() + songNotesMode.slice(1)}`;
+  renderSongList();
+}
+
+function toggleSongSort() {
+  songSortMode = songSortMode === 'title' ? 'status' : 'title';
+  const btn = document.getElementById('sort-btn');
+  if (btn) btn.textContent = `Sort: ${songSortMode === 'title' ? 'Title' : 'Status'}`;
+  renderSongList();
+}
+
 function renderSongList() {
   const el = document.getElementById('songs-list');
-  if (!allSongs.length) { el.innerHTML = '<div class="empty"><i class="ti ti-music-off"></i><p>No songs yet. Add one in Admin.</p></div>'; return; }
-  el.innerHTML = allSongs.map(s => `
-    <div class="song-item" onclick="openSong('${s.id}')">
-      <div>
+  let list = [...allSongs];
+
+  // Filter by status
+  if (activeStatusFilters.size > 0) {
+    list = list.filter(s => {
+      if (activeStatusFilters.has(0) && !s.learning_status) return true;
+      return activeStatusFilters.has(s.learning_status);
+    });
+  }
+
+  // Sort
+  if (songSortMode === 'status') {
+    list.sort((a, b) => {
+      const av = a.learning_status || 999;
+      const bv = b.learning_status || 999;
+      return av !== bv ? av - bv : a.title.localeCompare(b.title);
+    });
+  } else {
+    list.sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  if (!list.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-music-off"></i><p>No songs match the current filter.</p></div>';
+    return;
+  }
+
+  el.innerHTML = list.map(s => {
+    const st = s.learning_status ? LEARNING_STATUSES[s.learning_status] : null;
+    const statusBadge = st ? `<span class="badge ${st.cls}">${st.label}</span>` : '';
+    let notesHtml = '';
+    if (songNotesMode !== 'hidden' && s.learning_notes) {
+      const text = songNotesMode === 'preview'
+        ? (s.learning_notes.length > 60 ? s.learning_notes.slice(0, 60) + '…' : s.learning_notes)
+        : s.learning_notes;
+      notesHtml = `<div class="notes-preview">${escHtml(text)}</div>`;
+    }
+    return `<div class="song-item" onclick="openSong('${s.id}')">
+      <div style="flex:1;min-width:0;">
         <h3>${s.title}${s.version > 1 ? ` <span style="font-size:0.75rem;color:var(--brown-light);font-weight:400">v${s.version}</span>` : ''}</h3>
         ${s.artist ? `<div class="artist">${s.artist}</div>` : ''}
+        ${notesHtml}
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;margin-left:8px;">
+        ${statusBadge}
         ${s.difficulty ? `<span class="badge badge-difficulty">${s.difficulty}</span>` : ''}
         ${s.capo_fret ? `<span class="capo-badge">Capo ${s.capo_fret}</span>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function openSong(id) {
@@ -962,6 +1101,10 @@ function renderSongDetail() {
   document.getElementById('detail-title').textContent = s.title;
   document.getElementById('detail-artist').textContent = s.artist || '';
   const badges = [];
+  if (s.learning_status) {
+    const st = LEARNING_STATUSES[s.learning_status];
+    if (st) badges.push(`<span class="badge ${st.cls}">${st.label}</span>`);
+  }
   if (s.version > 1) badges.push(`<span class="badge badge-capo">v${s.version}</span>`);
   if (s.difficulty) badges.push(`<span class="badge badge-difficulty">${s.difficulty}</span>`);
   if (s.capo_fret) badges.push(`<span class="badge badge-capo">Capo ${s.capo_fret}</span>`);
@@ -969,10 +1112,38 @@ function renderSongDetail() {
   document.getElementById('detail-badges').innerHTML = badges.join('');
   document.getElementById('detail-chord-chips').innerHTML = s._chords.map(c =>
     `<span class="chord-chip" onclick="showChordByName('${c}')">${c}</span>`).join('');
+
+  // Populate learning progress fields
+  document.getElementById('detail-status-select').value = s.learning_status || '';
+  document.getElementById('detail-learning-notes').value = s.learning_notes || '';
+
   renderLyrics();
   const srcEl = document.getElementById('detail-source');
   srcEl.innerHTML = s.source_url ? `<a href="${s.source_url}" target="_blank" style="color:var(--accent);">View source ↗</a>` : '';
 }
+
+async function saveLearningProgress() {
+  if (!currentSong) return;
+  const statusVal = document.getElementById('detail-status-select').value;
+  const notesVal = document.getElementById('detail-learning-notes').value.trim();
+  try {
+    await api(`songs?id=eq.${currentSong.id}`, 'PATCH', {
+      learning_status: statusVal ? parseInt(statusVal) : null,
+      learning_notes: notesVal || null
+    });
+    currentSong.learning_status = statusVal ? parseInt(statusVal) : null;
+    currentSong.learning_notes = notesVal || null;
+    // Update in allSongs array so list reflects change
+    const idx = allSongs.findIndex(s => s.id === currentSong.id);
+    if (idx !== -1) {
+      allSongs[idx].learning_status = currentSong.learning_status;
+      allSongs[idx].learning_notes = currentSong.learning_notes;
+    }
+    toast('Learning progress saved');
+    renderSongDetail();
+  } catch(e) { toast('Error saving: ' + e.message); }
+}
+
 
 function renderLyrics() {
   const box = document.getElementById('lyrics-box');
