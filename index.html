@@ -253,27 +253,31 @@
       <div class="artist" id="detail-artist"></div>
       <div class="song-badges" id="detail-badges"></div>
     </div>
-    <div style="margin-bottom:16px;background:#fff;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);">Learning Progress</div>
-        <button class="btn btn-primary btn-sm" onclick="saveLearningProgress()">Save</button>
+    <div style="margin-bottom:16px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;" onclick="toggleLearningProgress()">
+        <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);">Learning Progress <span id="lp-status-preview"></span></div>
+        <i class="ti ti-chevron-down" id="lp-chevron" style="color:var(--brown-light);transition:transform .2s;"></i>
       </div>
-      <div class="form-group" style="margin-bottom:10px;">
-        <label>Status</label>
-        <select id="detail-status-select" style="font-size:0.9rem;">
-          <option value="">— not set —</option>
-          <option value="1">1 — Backlog</option>
-          <option value="2">2 — Just Started</option>
-          <option value="3">3 — Practicing Pieces</option>
-          <option value="4">4 — Practicing the Song</option>
-          <option value="5">5 — Running It Through</option>
-          <option value="6">6 — Mastered</option>
-          <option value="7">7 — Memorized</option>
-        </select>
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label>Learning Notes</label>
-        <textarea id="detail-learning-notes" rows="3" placeholder="Notes for your next practice session…" style="font-size:0.88rem;resize:vertical;"></textarea>
+      <div id="learning-progress-body" style="display:none;padding:0 16px 14px;">
+        <div class="form-group" style="margin-bottom:8px;">
+          <label>Status</label>
+          <select id="detail-status-select" style="font-size:0.9rem;" onchange="updateStatusHelper()">
+            <option value="">— not set —</option>
+            <option value="1">1 — Backlog</option>
+            <option value="2">2 — Just Started</option>
+            <option value="3">3 — Practicing Pieces</option>
+            <option value="4">4 — Practicing the Song</option>
+            <option value="5">5 — Running It Through</option>
+            <option value="6">6 — Mastered</option>
+            <option value="7">7 — Memorized</option>
+          </select>
+          <div id="status-helper-text" style="font-size:0.78rem;color:var(--brown-light);margin-top:4px;font-style:italic;"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label>Learning Notes</label>
+          <textarea id="detail-learning-notes" rows="3" placeholder="Notes for your next practice session…" style="font-size:0.88rem;resize:vertical;"></textarea>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveLearningProgress()">Save Progress</button>
       </div>
     </div>
     <div style="margin-bottom:16px;">
@@ -1019,8 +1023,8 @@ function renderSongList() {
   // Sort
   if (songSortMode === 'status') {
     list.sort((a, b) => {
-      const av = a.learning_status || 999;
-      const bv = b.learning_status || 999;
+      const av = a.learning_status ? parseInt(a.learning_status) : 999;
+      const bv = b.learning_status ? parseInt(b.learning_status) : 999;
       return av !== bv ? av - bv : a.title.localeCompare(b.title);
     });
   } else {
@@ -1116,11 +1120,48 @@ function renderSongDetail() {
   // Populate learning progress fields
   document.getElementById('detail-status-select').value = s.learning_status || '';
   document.getElementById('detail-learning-notes').value = s.learning_notes || '';
+  // Update status preview in collapsed header
+  const st = s.learning_status ? LEARNING_STATUSES[s.learning_status] : null;
+  const preview = document.getElementById('lp-status-preview');
+  if (preview) preview.innerHTML = st ? `— <span class="badge ${st.cls}" style="font-size:0.7rem;">${st.label}</span>` : '';
+  // Update helper text
+  updateStatusHelper();
+  // Keep section closed on new song open
+  learningProgressOpen = false;
+  const body = document.getElementById('learning-progress-body');
+  if (body) body.style.display = 'none';
+  const chev = document.getElementById('lp-chevron');
+  if (chev) chev.style.transform = '';
 
   renderLyrics();
   const srcEl = document.getElementById('detail-source');
   srcEl.innerHTML = s.source_url ? `<a href="${s.source_url}" target="_blank" style="color:var(--accent);">View source ↗</a>` : '';
 }
+
+const STATUS_DESCRIPTIONS = {
+  1: 'On my list to learn but haven\'t started yet.',
+  2: 'Starting to get familiar with the song.',
+  3: 'Working on individual pieces — chord switches, strumming, or lyrics separately.',
+  4: 'Pieces are coming together; practicing the full song, may focus on one aspect.',
+  5: 'Going through the whole song front to back — chords, strumming, and singing.',
+  6: 'Can consistently get through the whole song without stopping or dropping a piece.',
+  7: 'Can play this song from memory without the music in front of me.',
+};
+
+let learningProgressOpen = false;
+
+function toggleLearningProgress() {
+  learningProgressOpen = !learningProgressOpen;
+  document.getElementById('learning-progress-body').style.display = learningProgressOpen ? '' : 'none';
+  document.getElementById('lp-chevron').style.transform = learningProgressOpen ? 'rotate(180deg)' : '';
+}
+
+function updateStatusHelper() {
+  const val = document.getElementById('detail-status-select').value;
+  const helper = document.getElementById('status-helper-text');
+  if (helper) helper.textContent = val ? STATUS_DESCRIPTIONS[val] || '' : '';
+}
+
 
 async function saveLearningProgress() {
   if (!currentSong) return;
@@ -1140,7 +1181,8 @@ async function saveLearningProgress() {
       allSongs[idx].learning_notes = currentSong.learning_notes;
     }
     toast('Learning progress saved');
-    renderSongDetail();
+    renderStatusFilterChips();
+    renderSongDetail(); // re-renders collapsed header preview
   } catch(e) { toast('Error saving: ' + e.message); }
 }
 
