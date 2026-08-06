@@ -769,6 +769,8 @@
       <tr><td>source_url</td><td>text</td><td>Nullable. e.g. Ultimate Guitar link</td></tr>
       <tr><td>notes</td><td>text</td><td>Nullable</td></tr>
       <tr><td><span class="ref-badge ref-fk">FK</span> default_strumming_pattern_id</td><td>int</td><td>Nullable. Points to strumming_patterns. Used when same pattern throughout.</td></tr>
+      <tr><td>learning_status</td><td>int</td><td>Nullable. Check: 1–7. 1=Backlog, 2=Just Started, 3=Practicing Pieces, 4=Practicing the Song, 5=Running It Through, 6=Mastered, 7=Memorized.</td></tr>
+      <tr><td>learning_notes</td><td>text</td><td>Nullable. Free-text notes for practice sessions, editable from the Songs tab.</td></tr>
     </table>
 
     <h3>song_parts_order</h3>
@@ -810,21 +812,12 @@
     </ol>
 
     <h2>Feature Backlog</h2>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Visual chord diagram renderer (from fingering jsonb → SVG fretboard grid)</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord edit / delete in Admin</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Strumming pattern edit / delete in Admin</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Song versioning — version number per song (same song, multiple variations)</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Song difficulty field — Absolute Beginner, Beginner, Intermediate, Advanced</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Third line type: "comment" — italicized note-only line, distinct styling from chord/lyric</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Insert a line mid-part during admin entry (drag-and-drop or insert-above/below control)</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord progressions — new table (notation e.g. I-IV-V), derive actual chords from any home/starting chord via scale-degree math. New subtab in Admin and in Chords tab.</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-ux">UX</span> Chord chips on song detail page — clickable/hover to show fingering (currently only works on Chords tab)</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-ux">UX</span> Part-level strumming pattern display in song detail view</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-ux">UX</span> Admin Chords and Patterns subtabs show existing records by default (Songs subtab already does this)</div>
+    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Song learning kanban board view — songs grouped into columns by learning status (1–7). Toggled from the Songs tab list view.</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> Supabase RLS + authentication</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> UG text import refinement — broader chord-pattern coverage, edge case handling</div>
-    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord Change Cycling — countdown before practice starts shows upcoming chord but holds clicks/dots (completed)</div>
+    <div class="ref-backlog-item"><span class="ref-badge ref-tag-cross">Cross-app</span> Apply in-app Reference tab pattern to Decent Eats, Household Finance, Decent Health</div>
 
     <h2>Practice Module</h2>
     <p>The Practice tab has five subtabs: Chord Cycling, Strumming Drill, Practice Song, Fingering, and Timing.</p>
@@ -853,7 +846,10 @@
     <div class="ref-version-entry"><span class="ref-version-date">June 2026 — v1.2</span> Redesigned song_lyrics to flat line-based model with line_type. UG-style chord-above-lyric display.</div>
     <div class="ref-version-entry"><span class="ref-version-date">June 2026 — v1.3</span> UG text import (paste-in parser). Lowered auto-scroll speed floor.</div>
     <div class="ref-version-entry"><span class="ref-version-date">June 2026 — v1.4</span> Song edit/delete in Admin with cascade delete. Auto-scroll: numeric speed, configurable delay, compact mode. First Practice module: Chord Change Cycling.</div>
-    <div class="ref-version-entry"><span class="ref-version-date">June 2026 — v1.5</span> Built Strumming Pattern Drill with repeat count and progress tracking. Practice tab reorganized into subtabs. Added Practice Song, Fingering, and Timing modules — Practice v1 complete. Custom iOS home screen icon. Saving spinner fix. Import Clear button. Replaced encircled-(i) reference link with a dedicated in-app Reference tab (inlined content, no iframe) to fix iPad PWA navigation trap.</div>
+    <div class="ref-version-entry"><span class="ref-version-date">June 2026 — v1.5</span> Strumming Pattern Drill with repeat count. Practice tab reorganized into 5 subtabs. Practice Song, Fingering, Timing modules added — Practice v1 complete. Custom iOS home screen icon. In-app Reference tab (inlined, iPad-safe).</div>
+    <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.6</span> Chord SVG diagram renderer on cards and modal (toggle to string table). Chord modal moved to document level — works from any tab. Chord and pattern delete in Admin. Admin Chords/Patterns default-list on load.</div>
+    <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.7</span> Song versioning, difficulty, comment line type, mid-part line insertion, part-level strumming badge, per-song localStorage scroll prefs. Fingering exercises table + Admin Exercises subtab + tab notation display in Practice → Fingering.</div>
+    <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.8</span> Song learning status (7-level scale: Backlog→Memorized) and learning notes fields on songs. Status filter chips and sort-by-status on Songs list. Notes toggle (hidden/preview/full). Collapsible Learning Progress section on song detail with status helper text. All updates immediately reflected in list without page refresh.</div>
   </div>
 </div>
 
