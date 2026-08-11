@@ -420,10 +420,14 @@
             <div id="practice-next-chord" style="font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--cream);"></div>
           </div>
         </div>
-        <table class="string-table" id="practice-fingering-table" style="background:#fff;border-radius:8px;padding:8px;max-width:280px;margin:0 auto;">
+        <table class="string-table" id="practice-fingering-table" style="background:#fff;border-radius:8px;padding:8px;max-width:280px;margin:0 auto;display:none;">
           <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
           <tbody></tbody>
         </table>
+        <div id="practice-fingering-diagram" style="display:flex;justify-content:center;margin:0 auto;"></div>
+        <div style="text-align:center;margin-top:8px;">
+          <button class="btn btn-secondary btn-sm" id="practice-chord-view-toggle" onclick="togglePracticeChordView()" style="font-size:0.75rem;opacity:0.8;">Show table</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2454,6 +2458,15 @@ function playPracticeClick(accentLevel) {
   osc.stop(practiceAudioCtx.currentTime + 0.08);
 }
 
+let practiceChordViewMode = 'diagram';
+
+function togglePracticeChordView() {
+  practiceChordViewMode = practiceChordViewMode === 'diagram' ? 'table' : 'diagram';
+  document.getElementById('practice-fingering-diagram').style.display = practiceChordViewMode === 'diagram' ? 'flex' : 'none';
+  document.getElementById('practice-fingering-table').style.display = practiceChordViewMode === 'table' ? '' : 'none';
+  document.getElementById('practice-chord-view-toggle').textContent = practiceChordViewMode === 'diagram' ? 'Show table' : 'Show diagram';
+}
+
 function updatePracticeDisplay() {
   const ts = getTimeSig();
   const measure = practiceMeasures[practiceMeasureIdx];
@@ -2481,8 +2494,10 @@ function updatePracticeDisplay() {
   document.getElementById('practice-current-chord').textContent = displayChord ? displayChord.name : '—';
   document.getElementById('practice-next-chord').textContent = nextChord ? nextChord.name : '';
 
-  // Fingering table
+  // Fingering diagram + table
   if (displayChord) {
+    document.getElementById('practice-fingering-diagram').innerHTML = renderChordDiagramSVG(displayChord.fingering, 160, 180);
+    document.getElementById('practice-fingering-diagram').style.display = practiceChordViewMode === 'diagram' ? 'flex' : 'none';
     const tbody = document.querySelector('#practice-fingering-table tbody');
     tbody.innerHTML = STRINGS.map(s => {
       const d = (displayChord.fingering || {})[s] || {};
@@ -2493,6 +2508,7 @@ function updatePracticeDisplay() {
         <td>${d.fret != null ? d.fret : (d.plucked ? 'Open' : '—')}</td>
       </tr>`;
     }).join('');
+    document.getElementById('practice-fingering-table').style.display = practiceChordViewMode === 'table' ? '' : 'none';
   }
 
   // Beat dots — show all beats in current measure, highlight current
@@ -2514,6 +2530,9 @@ function stopPractice() {
   document.getElementById('practice-countdown').style.display = 'none';
   document.getElementById('practice-start-btn').innerHTML = '<i class="ti ti-player-play"></i> Start';
   document.getElementById('practice-display').style.display = 'none';
+  practiceChordViewMode = 'diagram';
+  const toggle = document.getElementById('practice-chord-view-toggle');
+  if (toggle) toggle.textContent = 'Show table';
 }
 
 // ── PRACTICE: STRUMMING PATTERN DRILL ──
