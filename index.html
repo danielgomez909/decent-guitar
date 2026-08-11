@@ -361,48 +361,55 @@
   <div id="practice-chords" class="subtab-content active">
     <div class="card" style="padding:16px;">
 
-      <!-- Step 1: Time signature + BPM + delay -->
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:4px;">
-        <div class="form-group">
-          <label>Time Signature</label>
-          <select id="practice-time-sig" onchange="initMeasureBuilder()">
-            <option value="4/4">4/4</option>
-            <option value="3/4">3/4</option>
-            <option value="6/8">6/8</option>
-          </select>
+      <!-- Collapsible setup section -->
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding-bottom:10px;border-bottom:1px solid var(--cream-dark);margin-bottom:12px;" onclick="togglePracticeSetup()">
+        <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);">Setup</span>
+        <i class="ti ti-chevron-up" id="practice-setup-chevron" style="color:var(--brown-light);transition:transform .2s;"></i>
+      </div>
+      <div id="practice-setup-body">
+        <!-- Step 1: Time signature + BPM + delay -->
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:4px;">
+          <div class="form-group">
+            <label>Time Signature</label>
+            <select id="practice-time-sig" onchange="initMeasureBuilder()">
+              <option value="4/4">4/4</option>
+              <option value="3/4">3/4</option>
+              <option value="6/8">6/8</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>BPM</label>
+            <input type="number" id="practice-bpm" value="60" min="20" max="240" />
+          </div>
+          <div class="form-group">
+            <label>Start Delay</label>
+            <select id="practice-delay-select">
+              <option value="1">1s</option><option value="2">2s</option><option value="3">3s</option>
+              <option value="4">4s</option><option value="5">5s</option><option value="6">6s</option>
+              <option value="7">7s</option><option value="8">8s</option><option value="9">9s</option>
+              <option value="10" selected>10s</option><option value="11">11s</option><option value="12">12s</option>
+              <option value="13">13s</option><option value="14">14s</option><option value="15">15s</option>
+              <option value="16">16s</option><option value="17">17s</option><option value="18">18s</option>
+              <option value="19">19s</option><option value="20">20s</option>
+            </select>
+          </div>
         </div>
+
+        <!-- Step 2: Chord picker -->
         <div class="form-group">
-          <label>BPM</label>
-          <input type="number" id="practice-bpm" value="60" min="20" max="240" />
+          <label>Tap a chord to assign it to a beat slot</label>
+          <div id="practice-chord-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
         </div>
+
+        <!-- Step 3: Measure builder -->
         <div class="form-group">
-          <label>Start Delay</label>
-          <select id="practice-delay-select">
-            <option value="1">1s</option><option value="2">2s</option><option value="3">3s</option>
-            <option value="4">4s</option><option value="5">5s</option><option value="6">6s</option>
-            <option value="7">7s</option><option value="8">8s</option><option value="9">9s</option>
-            <option value="10" selected>10s</option><option value="11">11s</option><option value="12">12s</option>
-            <option value="13">13s</option><option value="14">14s</option><option value="15">15s</option>
-            <option value="16">16s</option><option value="17">17s</option><option value="18">18s</option>
-            <option value="19">19s</option><option value="20">20s</option>
-          </select>
+          <label>Measures <span style="font-weight:400;color:var(--brown-light);font-size:0.8rem;">— tap a beat slot then tap a chord above to assign it</span></label>
+          <div id="measure-builder" style="margin-bottom:8px;"></div>
+          <button class="add-part-btn" onclick="addMeasure()">+ Add Measure</button>
         </div>
       </div>
 
-      <!-- Step 2: Chord picker -->
-      <div class="form-group">
-        <label>Tap a chord to assign it to a beat slot</label>
-        <div id="practice-chord-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-      </div>
-
-      <!-- Step 3: Measure builder -->
-      <div class="form-group">
-        <label>Measures <span style="font-weight:400;color:var(--brown-light);font-size:0.8rem;">— tap a beat slot then tap a chord above to assign it</span></label>
-        <div id="measure-builder" style="margin-bottom:8px;"></div>
-        <button class="add-part-btn" onclick="addMeasure()">+ Add Measure</button>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;margin-top:12px;">
         <button class="btn btn-primary" id="practice-start-btn" onclick="togglePractice()"><i class="ti ti-player-play"></i> Start</button>
         <button class="btn btn-secondary" onclick="clearMeasures()">Clear All</button>
       </div>
@@ -424,7 +431,7 @@
           <thead><tr><th>String</th><th>Plucked</th><th>Finger</th><th>Fret</th></tr></thead>
           <tbody></tbody>
         </table>
-        <div id="practice-fingering-diagram" style="display:flex;justify-content:center;margin:0 auto;"></div>
+        <div id="practice-fingering-diagram" style="display:flex;justify-content:center;margin:0 auto;background:#fff;border-radius:8px;padding:8px;max-width:200px;"></div>
         <div style="text-align:center;margin-top:8px;">
           <button class="btn btn-secondary btn-sm" id="practice-chord-view-toggle" onclick="togglePracticeChordView()" style="font-size:0.75rem;opacity:0.8;">Show table</button>
         </div>
@@ -2267,6 +2274,14 @@ let practiceAudioCtx = null;
 let practiceMeasureIdx = 0;
 let practiceBeatIdx = 0;   // 0-based
 let practiceCurrentChord = null;
+
+let practiceSetupOpen = true;
+
+function togglePracticeSetup() {
+  practiceSetupOpen = !practiceSetupOpen;
+  document.getElementById('practice-setup-body').style.display = practiceSetupOpen ? '' : 'none';
+  document.getElementById('practice-setup-chevron').style.transform = practiceSetupOpen ? '' : 'rotate(180deg)';
+}
 
 function getTimeSig() {
   return TIME_SIGS[document.getElementById('practice-time-sig')?.value || '4/4'];
