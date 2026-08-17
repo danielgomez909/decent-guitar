@@ -409,9 +409,24 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-bottom:16px;margin-top:12px;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;margin-top:12px;">
         <button class="btn btn-primary" id="practice-start-btn" onclick="togglePractice()"><i class="ti ti-player-play"></i> Start</button>
         <button class="btn btn-secondary" onclick="clearMeasures()">Clear All</button>
+      </div>
+
+      <!-- Save/Load sequences -->
+      <div style="border-top:1px solid var(--cream-dark);padding-top:12px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:8px;" onclick="toggleSequencePanel()">
+          <span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);">Saved Sequences</span>
+          <i class="ti ti-chevron-down" id="seq-panel-chevron" style="color:var(--brown-light);transition:transform .2s;"></i>
+        </div>
+        <div id="seq-panel-body" style="display:none;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input type="text" id="seq-name-input" placeholder="Sequence name…" style="flex:1;padding:8px 10px;border:1px solid var(--cream-dark);border-radius:7px;font-size:0.88rem;" />
+            <button class="btn btn-primary btn-sm" onclick="saveSequence()">Save</button>
+          </div>
+          <div id="seq-list"></div>
+        </div>
       </div>
 
       <div id="practice-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
@@ -833,6 +848,7 @@
     <h2>Feature Backlog</h2>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord progressions — new table (notation e.g. I-IV-V), derive actual chords from any home/starting chord via scale-degree math. New subtab in Admin and in Chords tab.</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Song learning kanban board view — songs grouped into columns by learning status (1–7). Toggled from the Songs tab list view.</div>
+    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord tone cue on beat changes in Chord Cycling — synthesized chord tone (Web Audio, electronic/keyboard sound) on beats where a chord change is assigned; steady click on hold beats.</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> Supabase RLS + authentication</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> UG text import refinement — broader chord-pattern coverage, edge case handling</div>
@@ -841,7 +857,7 @@
     <h2>Practice Module</h2>
     <p>The Practice tab has five subtabs: Chord Cycling, Strumming Drill, Practice Song, Fingering, and Timing.</p>
     <ul style="padding-left:20px;font-size:0.9rem;line-height:1.9;">
-      <li><strong>Chord Cycling:</strong> tap-to-build chord sequence, BPM + Beats per Chord, 1–20s start delay (default 10), audible metronome (beat-1 tone differs), live chord+fingering display with next-chord preview.</li>
+      <li><strong>Chord Cycling:</strong> measure-based practice with time signature (4/4, 3/4, 6/8). Beat-slot grid per measure — tap slot then tap chord to assign. Accent-aware metronome (strong/medium/light tones). SVG chord diagram in practice display. Collapsible setup section. Save/load named sequences to database.</li>
       <li><strong>Strumming Drill:</strong> tap-to-select pattern from library, BPM, 1–20s start delay, repeat count (default 10) with live cycle progress, large single-row notation display with active-slot highlighting, D/U distinct tones and silent rests.</li>
       <li><strong>Practice Song:</strong> link-out card to the Songs tab (no separate UI needed — full song practice already lives there).</li>
       <li><strong>Fingering:</strong> static reminder for the Spider Walk exercise (fingers 1→4 across strings, frets 5–8).</li>
@@ -869,6 +885,7 @@
     <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.6</span> Chord SVG diagram renderer on cards and modal (toggle to string table). Chord modal moved to document level — works from any tab. Chord and pattern delete in Admin. Admin Chords/Patterns default-list on load.</div>
     <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.7</span> Song versioning, difficulty, comment line type, mid-part line insertion, part-level strumming badge, per-song localStorage scroll prefs. Fingering exercises table + Admin Exercises subtab + tab notation display in Practice → Fingering.</div>
     <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.8</span> Song learning status (7-level scale: Backlog→Memorized) and learning notes fields on songs. Status filter chips and sort-by-status on Songs list. Notes toggle (hidden/preview/full). Collapsible Learning Progress section on song detail with status helper text. All updates immediately reflected in list without page refresh.</div>
+    <div class="ref-version-entry"><span class="ref-version-date">July 2026 — v1.9</span> Chord Cycling subtab rebuilt as measure-based practice: time signature (4/4, 3/4, 6/8), beat-slot measure grid, accent-aware metronome (strong/medium/light tones per beat), chord assigned per slot with auto-advance. SVG chord diagram in practice display (white bg, toggle to table). Collapsible setup section. Save/load practice sequences to database (practice_sequences table: name, time_signature, measures jsonb with chord IDs).</div>
   </div>
 </div>
 
@@ -2276,11 +2293,94 @@ let practiceBeatIdx = 0;   // 0-based
 let practiceCurrentChord = null;
 
 let practiceSetupOpen = true;
+let seqPanelOpen = false;
+let allSequences = [];
 
 function togglePracticeSetup() {
   practiceSetupOpen = !practiceSetupOpen;
   document.getElementById('practice-setup-body').style.display = practiceSetupOpen ? '' : 'none';
   document.getElementById('practice-setup-chevron').style.transform = practiceSetupOpen ? '' : 'rotate(180deg)';
+}
+
+function toggleSequencePanel() {
+  seqPanelOpen = !seqPanelOpen;
+  document.getElementById('seq-panel-body').style.display = seqPanelOpen ? '' : 'none';
+  document.getElementById('seq-panel-chevron').style.transform = seqPanelOpen ? 'rotate(180deg)' : '';
+  if (seqPanelOpen) loadSequenceList();
+}
+
+async function loadSequenceList() {
+  try {
+    allSequences = await api('practice_sequences?select=*&order=name');
+    renderSequenceList();
+  } catch(e) { toast('Error loading sequences'); }
+}
+
+function renderSequenceList() {
+  const el = document.getElementById('seq-list');
+  if (!allSequences.length) {
+    el.innerHTML = '<p style="font-size:0.82rem;color:var(--brown-light);">No saved sequences yet.</p>';
+    return;
+  }
+  el.innerHTML = allSequences.map(s => `
+    <div class="search-result-item" style="margin-bottom:6px;">
+      <div>
+        <div style="font-weight:600;font-size:0.88rem;">${s.name}</div>
+        <div style="font-size:0.75rem;color:var(--brown-light);">${s.time_signature} · ${JSON.parse(typeof s.measures === 'string' ? s.measures : JSON.stringify(s.measures)).length} measure(s)</div>
+      </div>
+      <div class="search-result-actions">
+        <button class="btn btn-secondary btn-sm" onclick="loadSequence(${s.id})">Load</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSequence(${s.id})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function saveSequence() {
+  const name = document.getElementById('seq-name-input').value.trim();
+  if (!name) { toast('Enter a name for this sequence'); return; }
+  const hasChord = practiceMeasures.some(m => m.slots.some(s => s.chord));
+  if (!hasChord) { toast('Add at least one chord before saving'); return; }
+  const timeSig = document.getElementById('practice-time-sig').value;
+  // Serialize measures — store chord IDs only
+  const measures = practiceMeasures.map(m => ({
+    slots: m.slots.map(slot => ({ chordId: slot.chord ? slot.chord.id : null }))
+  }));
+  try {
+    await api('practice_sequences', 'POST', { name, time_signature: timeSig, measures });
+    toast(`"${name}" saved`);
+    document.getElementById('seq-name-input').value = '';
+    await loadSequenceList();
+  } catch(e) { toast('Error saving: ' + e.message); }
+}
+
+async function loadSequence(id) {
+  const seq = allSequences.find(s => s.id === id);
+  if (!seq) return;
+  // Ensure chords are loaded
+  if (!allChords.length) allChords = await api('chords?select=*&order=name');
+  // Restore time signature
+  document.getElementById('practice-time-sig').value = seq.time_signature;
+  // Deserialize measures
+  const raw = typeof seq.measures === 'string' ? JSON.parse(seq.measures) : seq.measures;
+  practiceMeasures = raw.map(m => ({
+    slots: m.slots.map(slot => ({
+      chord: slot.chordId ? (allChords.find(c => c.id === slot.chordId) || null) : null
+    }))
+  }));
+  selectedBeatSlot = null;
+  renderMeasureBuilder();
+  toast(`"${seq.name}" loaded`);
+}
+
+async function deleteSequence(id) {
+  const seq = allSequences.find(s => s.id === id);
+  if (!seq) return;
+  if (!confirm(`Delete "${seq.name}"? This cannot be undone.`)) return;
+  try {
+    await api(`practice_sequences?id=eq.${id}`, 'DELETE');
+    toast(`"${seq.name}" deleted`);
+    await loadSequenceList();
+  } catch(e) { toast('Error deleting: ' + e.message); }
 }
 
 function getTimeSig() {
