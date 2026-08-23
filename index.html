@@ -309,6 +309,7 @@
     <div id="scroll-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="lyrics-box" id="lyrics-box"></div>
     <div id="detail-source" style="margin-top:10px;font-size:0.8rem;"></div>
+    <div id="detail-practice-link" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -347,7 +348,16 @@
 
 <!-- PRACTICE TAB -->
 <div id="tab-practice" class="tab-content">
-  <div class="section-header"><h2>Practice</h2></div>
+  <div class="section-header">
+    <h2>Practice</h2>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;background:#fff;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);">
+    <label style="font-size:0.8rem;font-weight:600;color:var(--brown-light);white-space:nowrap;">Song context:</label>
+    <select id="practice-song-context" onchange="setPracticeSongContext()" style="flex:1;font-size:0.88rem;padding:6px 10px;border:1px solid var(--cream-dark);border-radius:7px;">
+      <option value="">— General practice (no song) —</option>
+    </select>
+    <button class="btn btn-secondary btn-sm" onclick="clearPracticeSongContext()" id="practice-context-clear-btn" style="display:none;white-space:nowrap;">Clear</button>
+  </div>
 
   <div class="subtab-bar">
     <button class="subtab-btn active" onclick="switchPracticeSubtab('practice-chords')">Chord Cycling</button>
@@ -458,6 +468,7 @@
     <div class="card" style="padding:16px;">
       <div class="form-group">
         <label>Tap a pattern to select it</label>
+        <div id="strum-context-hint"></div>
         <div id="strum-pattern-picker" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
       </div>
 
@@ -698,6 +709,20 @@
     <input type="hidden" id="exercise-edit-id" value="" />
     <div class="form-group"><label>Name</label><input type="text" id="exercise-name" placeholder="e.g. Mary Had a Little Lamb" /></div>
     <div class="form-group"><label>Notes (optional)</label><input type="text" id="exercise-notes" placeholder="e.g. Practice slowly at first" /></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Song (optional)</label>
+        <select id="exercise-song-id">
+          <option value="">— not linked to a song —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Part (optional)</label>
+        <select id="exercise-part-id">
+          <option value="">— select part —</option>
+        </select>
+      </div>
+    </div>
     <div class="form-group">
       <label>Tab (space-separated fret numbers per string, x for rest, blank if string not used)</label>
       <div style="border:1px solid var(--cream-dark);border-radius:8px;overflow:hidden;margin-top:4px;">
@@ -968,9 +993,10 @@ function switchPracticeSubtab(id) {
   document.getElementById(id).classList.add('active');
   const idx = ['practice-chords','practice-strum','practice-song','practice-fingering','practice-timing'].indexOf(id);
   document.querySelectorAll('#tab-practice .subtab-btn')[idx].classList.add('active');
+  if (id === 'practice-strum') renderStrumContextHint();
   if (id === 'practice-fingering') {
     if (!allExercises.length) {
-      api('fingering_exercises?select=*&order=name').then(ex => { allExercises = ex; renderExerciseList(); });
+      api('fingering_exercises?select=*,parts(name)&order=name').then(ex => { allExercises = ex; renderExerciseList(); });
     } else {
       renderExerciseList();
     }
@@ -1124,6 +1150,14 @@ async function openSong(id) {
     });
     currentSong._chords = [...chordSet];
 
+    // Check for practice materials linked to this song
+    const [seqLinks, exLinks] = await Promise.all([
+      api(`practice_sequence_songs?song_id=eq.${id}&select=practice_sequence_id`),
+      api(`fingering_exercises?song_id=eq.${id}&select=id`)
+    ]);
+    currentSong._hasPracticeSequences = seqLinks.length > 0;
+    currentSong._hasPracticeExercises = exLinks.length > 0;
+
     loadSongPrefs(id);
 
     renderSongDetail();
@@ -1168,6 +1202,25 @@ function renderSongDetail() {
   renderLyrics();
   const srcEl = document.getElementById('detail-source');
   srcEl.innerHTML = s.source_url ? `<a href="${s.source_url}" target="_blank" style="color:var(--accent);">View source ↗</a>` : '';
+
+  // Practice materials indicator + button
+  const practiceEl = document.getElementById('detail-practice-link');
+  if (practiceEl) {
+    const hasStrumming = !!s.default_strumming_pattern_id;
+    const hasSequences = s._hasPracticeSequences;
+    const hasExercises = s._hasPracticeExercises;
+    const hasMaterials = hasStrumming || hasSequences || hasExercises;
+    const indicators = [];
+    if (hasStrumming) indicators.push('strumming pattern');
+    if (hasSequences) indicators.push('chord sequences');
+    if (hasExercises) indicators.push('fingering exercises');
+    practiceEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" onclick="goToPracticeWithSong('${s.id}')">
+        <i class="ti ti-player-play"></i> Practice this song
+      </button>
+      ${hasMaterials ? `<span style="font-size:0.78rem;color:var(--brown-light);">Materials: ${indicators.join(', ')}</span>` : '<span style="font-size:0.78rem;color:var(--brown-light);">No practice materials linked yet.</span>'}
+    </div>`;
+  }
 }
 
 const STATUS_DESCRIPTIONS = {
@@ -1260,6 +1313,19 @@ function renderLyrics() {
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function goToPracticeWithSong(songId) {
+  // Switch to Practice tab
+  switchTab('practice');
+  // Set song context after a brief delay to allow initPractice to populate the dropdown
+  setTimeout(() => {
+    const sel = document.getElementById('practice-song-context');
+    if (sel) {
+      sel.value = songId;
+      setPracticeSongContext();
+    }
+  }, 300);
 }
 
 function showSongList() {
@@ -1545,15 +1611,23 @@ async function initAdmin() {
     api('strumming_patterns?select=*&order=notation'),
     api('parts?select=*&order=name')
   ]);
+  if (!allSongs.length) allSongs = await api('songs?select=*,strumming_patterns(notation)&order=title');
   const sel = document.getElementById('song-default-pattern');
   sel.innerHTML = '<option value="">— same throughout (optional) —</option>' +
     allPatterns.map(p => `<option value="${p.id}">${p.notation}</option>`).join('');
+  // Populate exercise song/part dropdowns
+  const exSongSel = document.getElementById('exercise-song-id');
+  if (exSongSel) exSongSel.innerHTML = '<option value="">— not linked to a song —</option>' +
+    allSongs.map(s => `<option value="${s.id}">${s.title}${s.artist ? ' — ' + s.artist : ''}</option>`).join('');
+  const exPartSel = document.getElementById('exercise-part-id');
+  if (exPartSel) exPartSel.innerHTML = '<option value="">— select part —</option>' +
+    allParts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   initFingeringGrid();
   if (partRows.length === 0) addPartRow();
   searchChords();
   searchPatterns();
   searchSongs();
-  if (!allExercises.length) allExercises = await api('fingering_exercises?select=*&order=name');
+  if (!allExercises.length) allExercises = await api('fingering_exercises?select=*,parts(name)&order=name');
   searchExercises();
 }
 
@@ -1581,6 +1655,8 @@ function editExercise(id) {
   document.getElementById('exercise-edit-id').value = e.id;
   document.getElementById('exercise-name').value = e.name || '';
   document.getElementById('exercise-notes').value = e.notes || '';
+  document.getElementById('exercise-song-id').value = e.song_id || '';
+  document.getElementById('exercise-part-id').value = e.part_id || '';
   TAB_STRINGS.forEach(s => {
     const el = document.getElementById(`tab-${s}`);
     if (el) el.value = (e.tab && e.tab[s]) ? e.tab[s] : '';
@@ -1595,6 +1671,8 @@ function resetExerciseForm() {
   document.getElementById('exercise-edit-id').value = '';
   document.getElementById('exercise-name').value = '';
   document.getElementById('exercise-notes').value = '';
+  document.getElementById('exercise-song-id').value = '';
+  document.getElementById('exercise-part-id').value = '';
   TAB_STRINGS.forEach(s => { const el = document.getElementById(`tab-${s}`); if (el) el.value = ''; });
   document.getElementById('exercise-form-title').textContent = 'Add Exercise';
   document.getElementById('exercise-cancel-btn').style.display = 'none';
@@ -1605,20 +1683,23 @@ async function saveExercise() {
   const name = document.getElementById('exercise-name').value.trim();
   if (!name) { toast('Name required'); return; }
   const notes = document.getElementById('exercise-notes').value.trim() || null;
+  const songId = document.getElementById('exercise-song-id').value || null;
+  const partId = document.getElementById('exercise-part-id').value || null;
   const tab = {};
   TAB_STRINGS.forEach(s => { tab[s] = (document.getElementById(`tab-${s}`)?.value || '').trim(); });
   const editId = document.getElementById('exercise-edit-id').value;
   try {
     if (editId) {
-      await api(`fingering_exercises?id=eq.${editId}`, 'PATCH', { name, notes, tab });
+      await api(`fingering_exercises?id=eq.${editId}`, 'PATCH', { name, notes, tab, song_id: songId, part_id: partId ? parseInt(partId) : null });
       toast(`"${name}" updated`);
     } else {
-      await api('fingering_exercises', 'POST', { name, notes, tab });
+      await api('fingering_exercises', 'POST', { name, notes, tab, song_id: songId, part_id: partId ? parseInt(partId) : null });
       toast(`"${name}" saved`);
     }
-    allExercises = await api('fingering_exercises?select=*&order=name');
+    allExercises = await api('fingering_exercises?select=*,parts(name)&order=name');
     resetExerciseForm();
     searchExercises();
+    renderExerciseList();
   } catch(e) { toast('Error: ' + e.message); }
 }
 
@@ -1630,9 +1711,10 @@ async function deleteExercise() {
   try {
     await api(`fingering_exercises?id=eq.${id}`, 'DELETE');
     toast(`"${name}" deleted`);
-    allExercises = await api('fingering_exercises?select=*&order=name');
+    allExercises = await api('fingering_exercises?select=*,parts(name)&order=name');
     resetExerciseForm();
     searchExercises();
+    renderExerciseList();
     renderExerciseList();
   } catch(e) { toast('Error: ' + e.message); }
 }
@@ -1641,18 +1723,40 @@ async function deleteExercise() {
 function renderExerciseList() {
   const el = document.getElementById('exercise-list-practice');
   if (!el) return;
-  if (!allExercises.length) {
+  let list = [...allExercises];
+  // Filter by song context if set
+  if (practiceSongContext) {
+    const songId = practiceSongContext.id;
+    const linked = list.filter(e => e.song_id === songId);
+    const others = list.filter(e => e.song_id !== songId);
+    if (linked.length) {
+      el.innerHTML =
+        `<div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px;">This song's exercises</div>` +
+        linked.map(e => renderExerciseItem(e)).join('') +
+        (others.length ? `<div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);margin:10px 0 6px;">Other exercises</div>` + others.map(e => renderExerciseItem(e)).join('') : '');
+      return;
+    }
+    // No linked exercises — still show others but note it
+    el.innerHTML = `<p style="font-size:0.82rem;color:var(--brown-light);margin-bottom:8px;">No exercises linked to this song yet.</p>` +
+      (list.length ? `<div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);margin-bottom:6px;">All exercises</div>` + list.map(e => renderExerciseItem(e)).join('') : '');
+    return;
+  }
+  if (!list.length) {
     el.innerHTML = '<p style="font-size:0.85rem;color:var(--brown-light);text-align:center;padding:10px 0;">No exercises yet — add some in Admin → Exercises.</p>';
     return;
   }
-  el.innerHTML = allExercises.map(e => `
-    <div class="song-item" onclick="openExerciseDetail(${e.id})" style="margin-bottom:8px;">
-      <div>
-        <h3 style="font-family:'Lora',serif;font-size:0.95rem;">${e.name}</h3>
-        ${e.notes ? `<div style="font-size:0.8rem;color:var(--brown-light);">${e.notes}</div>` : ''}
-      </div>
-      <i class="ti ti-chevron-right" style="color:var(--brown-light);"></i>
-    </div>`).join('');
+  el.innerHTML = list.map(e => renderExerciseItem(e)).join('');
+}
+
+function renderExerciseItem(e) {
+  const partLabel = e.parts?.name ? `<span style="font-size:0.72rem;background:var(--cream-dark);color:var(--brown);padding:1px 6px;border-radius:10px;margin-left:4px;">${e.parts.name}</span>` : '';
+  return `<div class="song-item" onclick="openExerciseDetail(${e.id})" style="margin-bottom:8px;">
+    <div>
+      <h3 style="font-family:'Lora',serif;font-size:0.95rem;">${e.name}${partLabel}</h3>
+      ${e.notes ? `<div style="font-size:0.8rem;color:var(--brown-light);">${e.notes}</div>` : ''}
+    </div>
+    <i class="ti ti-chevron-right" style="color:var(--brown-light);"></i>
+  </div>`;
 }
 
 function openExerciseDetail(id) {
@@ -2293,6 +2397,7 @@ let practiceBeatIdx = 0;   // 0-based
 let practiceCurrentChord = null;
 
 let practiceSetupOpen = true;
+let practiceSongContext = null; // currently selected song object for practice context
 let seqPanelOpen = false;
 let allSequences = [];
 
@@ -2312,8 +2417,34 @@ function toggleSequencePanel() {
 async function loadSequenceList() {
   try {
     allSequences = await api('practice_sequences?select=*&order=name');
+    // Fetch all song links and attach to sequences
+    if (allSequences.length) {
+      const links = await api('practice_sequence_songs?select=*');
+      allSequences.forEach(s => {
+        s._songIds = links.filter(l => l.practice_sequence_id === s.id).map(l => l.song_id);
+      });
+    }
     renderSequenceList();
   } catch(e) { toast('Error loading sequences'); }
+}
+
+async function linkSequenceSong(seqId) {
+  if (!practiceSongContext) return;
+  try {
+    await api('practice_sequence_songs', 'POST', { practice_sequence_id: seqId, song_id: practiceSongContext.id });
+    toast('Sequence linked to song');
+    await loadSequenceList();
+  } catch(e) { toast('Error linking: ' + e.message); }
+}
+
+async function unlinkSequenceSong(seqId) {
+  if (!practiceSongContext) return;
+  if (!confirm('Unlink this sequence from the song?')) return;
+  try {
+    await api(`practice_sequence_songs?practice_sequence_id=eq.${seqId}&song_id=eq.${practiceSongContext.id}`, 'DELETE');
+    toast('Sequence unlinked');
+    await loadSequenceList();
+  } catch(e) { toast('Error unlinking: ' + e.message); }
 }
 
 function renderSequenceList() {
@@ -2322,17 +2453,41 @@ function renderSequenceList() {
     el.innerHTML = '<p style="font-size:0.82rem;color:var(--brown-light);">No saved sequences yet.</p>';
     return;
   }
-  el.innerHTML = allSequences.map(s => `
-    <div class="search-result-item" style="margin-bottom:6px;">
-      <div>
-        <div style="font-weight:600;font-size:0.88rem;">${s.name}</div>
-        <div style="font-size:0.75rem;color:var(--brown-light);">${s.time_signature} · ${JSON.parse(typeof s.measures === 'string' ? s.measures : JSON.stringify(s.measures)).length} measure(s)</div>
-      </div>
-      <div class="search-result-actions">
-        <button class="btn btn-secondary btn-sm" onclick="loadSequence(${s.id})">Load</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSequence(${s.id})">Delete</button>
-      </div>
-    </div>`).join('');
+  // If song context set, show song's sequences first, then others
+  let list = [...allSequences];
+  if (practiceSongContext) {
+    const songId = practiceSongContext.id;
+    const linked = list.filter(s => s._songIds && s._songIds.includes(songId));
+    const others = list.filter(s => !s._songIds || !s._songIds.includes(songId));
+    if (linked.length) {
+      el.innerHTML = `<div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px;">This song's sequences</div>` +
+        linked.map(s => renderSeqItem(s, songId)).join('') +
+        (others.length ? `<div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--brown-light);margin:10px 0 6px;">Other sequences</div>` + others.map(s => renderSeqItem(s, songId)).join('') : '');
+      return;
+    }
+  }
+  el.innerHTML = list.map(s => renderSeqItem(s, practiceSongContext?.id)).join('');
+}
+
+function renderSeqItem(s, activeSongId) {
+  const measures = typeof s.measures === 'string' ? JSON.parse(s.measures) : s.measures;
+  const isLinked = activeSongId && s._songIds && s._songIds.includes(activeSongId);
+  const linkBtn = activeSongId
+    ? isLinked
+      ? `<button class="btn btn-secondary btn-sm" onclick="unlinkSequenceSong(${s.id})">Unlink song</button>`
+      : `<button class="btn btn-secondary btn-sm" onclick="linkSequenceSong(${s.id})">Link to song</button>`
+    : '';
+  return `<div class="search-result-item" style="margin-bottom:6px;${isLinked ? 'border-left:3px solid var(--accent);' : ''}">
+    <div>
+      <div style="font-weight:600;font-size:0.88rem;">${s.name}</div>
+      <div style="font-size:0.75rem;color:var(--brown-light);">${s.time_signature} · ${measures.length} measure(s)</div>
+    </div>
+    <div class="search-result-actions">
+      ${linkBtn}
+      <button class="btn btn-secondary btn-sm" onclick="loadSequence(${s.id})">Load</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSequence(${s.id})">Delete</button>
+    </div>
+  </div>`;
 }
 
 async function saveSequence() {
@@ -2475,6 +2630,16 @@ function renderMeasureBuilder() {
 async function initPractice() {
   if (!allChords.length) allChords = await api('chords?select=*&order=name');
   if (!allPatterns.length) allPatterns = await api('strumming_patterns?select=*&order=notation');
+  if (!allSongs.length) allSongs = await api('songs?select=*,strumming_patterns(notation)&order=title');
+
+  // Populate song context dropdown
+  const ctxSel = document.getElementById('practice-song-context');
+  if (ctxSel) {
+    const currentVal = ctxSel.value;
+    ctxSel.innerHTML = '<option value="">— General practice (no song) —</option>' +
+      allSongs.map(s => `<option value="${s.id}">${s.title}${s.artist ? ' — ' + s.artist : ''}</option>`).join('');
+    if (currentVal) ctxSel.value = currentVal; // preserve selection on re-init
+  }
 
   // Chord picker — clicking assigns to selected slot
   const picker = document.getElementById('practice-chord-picker');
@@ -2488,6 +2653,46 @@ async function initPractice() {
 
   if (practiceMeasures.length === 0) addMeasure();
   else renderMeasureBuilder();
+}
+
+function setPracticeSongContext() {
+  const sel = document.getElementById('practice-song-context');
+  const id = sel.value;
+  practiceSongContext = id ? (allSongs.find(s => s.id === id) || null) : null;
+  document.getElementById('practice-context-clear-btn').style.display = practiceSongContext ? '' : 'none';
+  // Notify each subtab to update
+  applyPracticeSongContext();
+}
+
+function clearPracticeSongContext() {
+  document.getElementById('practice-song-context').value = '';
+  practiceSongContext = null;
+  document.getElementById('practice-context-clear-btn').style.display = 'none';
+  applyPracticeSongContext();
+}
+
+function applyPracticeSongContext() {
+  renderStrumContextHint();
+  // Auto-select song's default strumming pattern if set
+  if (practiceSongContext?.default_strumming_pattern_id && allPatterns.length) {
+    const p = allPatterns.find(x => x.id === practiceSongContext.default_strumming_pattern_id);
+    if (p) selectStrumPattern(p.id);
+  }
+  renderSequenceList();
+  renderExerciseList();
+}
+
+function renderStrumContextHint() {
+  const el = document.getElementById('strum-context-hint');
+  if (!el) return;
+  if (!practiceSongContext) { el.innerHTML = ''; return; }
+  const s = practiceSongContext;
+  // Build list of patterns for this song: default + any part overrides
+  let hints = [];
+  if (s.strumming_patterns?.notation) hints.push(`Default: <strong>${s.strumming_patterns.notation}</strong>`);
+  el.innerHTML = hints.length
+    ? `<div style="font-size:0.8rem;color:var(--brown-light);margin-bottom:8px;">Song pattern${hints.length > 1 ? 's' : ''}: ${hints.join(' · ')}</div>`
+    : '<div style="font-size:0.8rem;color:var(--brown-light);margin-bottom:8px;">No strumming pattern stored for this song.</div>';
 }
 
 function togglePractice() { (practicing || practiceCountdownInterval) ? stopPractice() : startPractice(); }
