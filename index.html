@@ -277,7 +277,10 @@
           <label>Learning Notes</label>
           <textarea id="detail-learning-notes" rows="3" placeholder="Notes for your next practice session…" style="font-size:0.88rem;resize:vertical;"></textarea>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="saveLearningProgress()">Save Progress</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="saveLearningProgress()">Save Progress</button>
+          <button class="btn btn-secondary btn-sm" id="detail-practice-btn" onclick="goToPracticeWithSong(currentSong?.id)" style="display:none;"><i class="ti ti-player-play"></i> Practice this song</button>
+        </div>
       </div>
     </div>
     <div style="margin-bottom:16px;">
@@ -309,7 +312,6 @@
     <div id="scroll-countdown" style="display:none;text-align:center;color:var(--accent-light);font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;"></div>
     <div class="lyrics-box" id="lyrics-box"></div>
     <div id="detail-source" style="margin-top:10px;font-size:0.8rem;"></div>
-    <div id="detail-practice-link" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -1203,23 +1205,21 @@ function renderSongDetail() {
   const srcEl = document.getElementById('detail-source');
   srcEl.innerHTML = s.source_url ? `<a href="${s.source_url}" target="_blank" style="color:var(--accent);">View source ↗</a>` : '';
 
-  // Practice materials indicator + button
-  const practiceEl = document.getElementById('detail-practice-link');
-  if (practiceEl) {
-    const hasStrumming = !!s.default_strumming_pattern_id;
-    const hasSequences = s._hasPracticeSequences;
-    const hasExercises = s._hasPracticeExercises;
-    const hasMaterials = hasStrumming || hasSequences || hasExercises;
+  // Show Practice this song button in learning progress section
+  const practiceBtn = document.getElementById('detail-practice-btn');
+  if (practiceBtn) practiceBtn.style.display = '';
+
+  // Update materials hint in LP collapsed header
+  const lpPreview = document.getElementById('lp-status-preview');
+  if (lpPreview) {
+    const st = s.learning_status ? LEARNING_STATUSES[s.learning_status] : null;
+    const statusPart = st ? `— <span class="badge ${st.cls}" style="font-size:0.7rem;">${st.label}</span>` : '';
     const indicators = [];
-    if (hasStrumming) indicators.push('strumming pattern');
-    if (hasSequences) indicators.push('chord sequences');
-    if (hasExercises) indicators.push('fingering exercises');
-    practiceEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-primary btn-sm" onclick="goToPracticeWithSong('${s.id}')">
-        <i class="ti ti-player-play"></i> Practice this song
-      </button>
-      ${hasMaterials ? `<span style="font-size:0.78rem;color:var(--brown-light);">Materials: ${indicators.join(', ')}</span>` : '<span style="font-size:0.78rem;color:var(--brown-light);">No practice materials linked yet.</span>'}
-    </div>`;
+    if (s.default_strumming_pattern_id) indicators.push('🎵');
+    if (s._hasPracticeSequences) indicators.push('🔄');
+    if (s._hasPracticeExercises) indicators.push('🎸');
+    const materialsPart = indicators.length ? `<span style="font-size:0.75rem;margin-left:6px;" title="Practice materials linked">${indicators.join('')}</span>` : '';
+    lpPreview.innerHTML = statusPart + materialsPart;
   }
 }
 
