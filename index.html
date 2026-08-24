@@ -860,7 +860,36 @@
       <tr><td><span class="ref-badge ref-fk">FK</span> song_parts_order_id</td><td>uuid</td><td>→ song_parts_order, cascade delete</td></tr>
       <tr><td>line_order</td><td>int</td><td>1-based sequence within a part. Unique with song_parts_order_id.</td></tr>
       <tr><td>lyric_text</td><td>text</td><td>Raw line text, fixed-width spacing for chord alignment</td></tr>
-      <tr><td>line_type</td><td>text</td><td>'chords' or 'lyrics' (check constraint). Comment type planned — see backlog.</td></tr>
+      <tr><td>line_type</td><td>text</td><td>Check: 'chords', 'lyrics', 'comment'. Comment lines rendered italic/muted.</td></tr>
+    </table>
+
+    <h3>fingering_exercises</h3>
+    <table>
+      <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+      <tr><td><span class="ref-badge ref-pk">PK</span> id</td><td>serial</td><td></td></tr>
+      <tr><td>name</td><td>text</td><td></td></tr>
+      <tr><td>notes</td><td>text</td><td>Nullable. Practice tips.</td></tr>
+      <tr><td>tab</td><td>jsonb</td><td>Keys: e, B, G, D, A, E. Space-separated fret sequences per string.</td></tr>
+      <tr><td><span class="ref-badge ref-fk">FK</span> song_id</td><td>uuid</td><td>Nullable → songs. Links exercise to a song.</td></tr>
+      <tr><td><span class="ref-badge ref-fk">FK</span> part_id</td><td>int</td><td>Nullable → parts. Indicates which song section (Intro, Verse, etc.).</td></tr>
+    </table>
+
+    <h3>practice_sequences</h3>
+    <table>
+      <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+      <tr><td><span class="ref-badge ref-pk">PK</span> id</td><td>serial</td><td></td></tr>
+      <tr><td>name</td><td>text</td><td></td></tr>
+      <tr><td>time_signature</td><td>text</td><td>'4/4', '3/4', or '6/8'</td></tr>
+      <tr><td>measures</td><td>jsonb</td><td>Array of measures, each with slots array. Each slot: {chordId: int|null}. Null = hold.</td></tr>
+      <tr><td>created_at</td><td>timestamptz</td><td>Default now()</td></tr>
+    </table>
+
+    <h3>practice_sequence_songs</h3>
+    <p>Many-to-many link between practice sequences and songs. Same sequence can be linked to multiple songs.</p>
+    <table>
+      <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+      <tr><td><span class="ref-badge ref-fk">FK</span> practice_sequence_id</td><td>int</td><td>Composite PK → practice_sequences, cascade delete</td></tr>
+      <tr><td><span class="ref-badge ref-fk">FK</span> song_id</td><td>uuid</td><td>Composite PK → songs, cascade delete</td></tr>
     </table>
 
     <h2>Deployment Workflow</h2>
@@ -876,6 +905,7 @@
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord progressions — new table (notation e.g. I-IV-V), derive actual chords from any home/starting chord via scale-degree math. New subtab in Admin and in Chords tab.</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Song learning kanban board view — songs grouped into columns by learning status (1–7). Toggled from the Songs tab list view.</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Chord tone cue on beat changes in Chord Cycling — synthesized chord tone (Web Audio, electronic/keyboard sound) on beats where a chord change is assigned; steady click on hold beats.</div>
+    <div class="ref-backlog-item"><span class="ref-badge ref-tag-feature">Feature</span> Song Practice Progress — milestone checklist in Learning Progress section per song. Three auto milestones per song (singing with simple strumming, full strumming without singing, singing &amp; full strumming) plus dynamic rows for each linked chord cycling sequence, strumming pattern, and fingering exercise. Status per milestone: Not Started / In Progress / Complete. Stored in DB.</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> Supabase RLS + authentication</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> Extensible fingering jsonb — additional per-string attributes (mute, slide, etc.)</div>
     <div class="ref-backlog-item"><span class="ref-badge ref-tag-data">Data</span> UG text import refinement — broader chord-pattern coverage, edge case handling</div>
@@ -884,10 +914,10 @@
     <h2>Practice Module</h2>
     <p>The Practice tab has five subtabs: Chord Cycling, Strumming Drill, Practice Song, Fingering, and Timing.</p>
     <ul style="padding-left:20px;font-size:0.9rem;line-height:1.9;">
-      <li><strong>Chord Cycling:</strong> measure-based practice with time signature (4/4, 3/4, 6/8). Beat-slot grid per measure — tap slot then tap chord to assign. Accent-aware metronome (strong/medium/light tones). SVG chord diagram in practice display. Collapsible setup section. Save/load named sequences to database.</li>
-      <li><strong>Strumming Drill:</strong> tap-to-select pattern from library, BPM, 1–20s start delay, repeat count (default 10) with live cycle progress, large single-row notation display with active-slot highlighting, D/U distinct tones and silent rests.</li>
+      <li><strong>Chord Cycling:</strong> measure-based practice with time signature (4/4, 3/4, 6/8). Beat-slot grid per measure — tap slot then tap chord to assign. Accent-aware metronome (strong/medium/light tones). SVG chord diagram in practice display. Collapsible setup section. Save/load named sequences to database. Sequences can be linked to songs (many-to-many via practice_sequence_songs). Song context selector at top of Practice tab filters sequences for the selected song.</li>
+      <li><strong>Strumming Drill:</strong> tap-to-select pattern from library, BPM, 1–20s start delay, repeat count (default 10). When song context is set, auto-selects the song's default strumming pattern.</li>
       <li><strong>Practice Song:</strong> link-out card to the Songs tab (no separate UI needed — full song practice already lives there).</li>
-      <li><strong>Fingering:</strong> static reminder for the Spider Walk exercise (fingers 1→4 across strings, frets 5–8).</li>
+      <li><strong>Fingering:</strong> Spider Walk reminder + admin-managed tab exercises. Exercises can be linked to a song and part. Song context filters exercises for the selected song.</li>
       <li><strong>Timing:</strong> standalone metronome — BPM, duration (5s increments to 120s), 1–20s start delay, pendulum-style alternating dot visual, live MM:SS countdown, auto-stops at zero.</li>
     </ul>
 
@@ -913,6 +943,7 @@
     <div class="ref-version-entry"><span class="ref-version-date">August 2026 — v1.7</span> Song versioning, difficulty, comment line type, mid-part line insertion, part-level strumming badge, per-song localStorage scroll prefs. Fingering exercises table + Admin Exercises subtab + tab notation display in Practice → Fingering.</div>
     <div class="ref-version-entry"><span class="ref-version-date">August 2026 — v1.8</span> Song learning status (7-level scale: Backlog→Memorized) and learning notes fields on songs. Status filter chips and sort-by-status on Songs list. Notes toggle (hidden/preview/full). Collapsible Learning Progress section on song detail with status helper text. All updates immediately reflected in list without page refresh.</div>
     <div class="ref-version-entry"><span class="ref-version-date">August 2026 — v1.9</span> Chord Cycling subtab rebuilt as measure-based practice: time signature (4/4, 3/4, 6/8), beat-slot measure grid, accent-aware metronome (strong/medium/light tones per beat), chord assigned per slot with auto-advance. SVG chord diagram in practice display (white bg, toggle to table). Collapsible setup section. Save/load practice sequences to database (practice_sequences table: name, time_signature, measures jsonb with chord IDs).</div>
+    <div class="ref-version-entry"><span class="ref-version-date">August 2026 — v2.0</span> Song practice context selector at top of Practice tab — select a song to filter all subtabs. Strumming Drill auto-selects song's default pattern. Chord Cycling sequences linkable to songs (many-to-many via practice_sequence_songs table); linked sequences shown first when context set; link/unlink buttons per sequence. Fingering exercises gain optional song_id and part_id fields (Admin → Exercises); filtered by song in Practice → Fingering. Songs tab: "Practice this song" button in Learning Progress section jumps to Practice tab with that song pre-selected; practice materials indicators (🎵🔄🎸) shown in Learning Progress header.</div>
   </div>
 </div>
 
