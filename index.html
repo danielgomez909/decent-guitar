@@ -685,9 +685,17 @@
     <div class="form-group"><label>Source URL (optional)</label><input type="text" id="song-source" placeholder="https://…" /></div>
     <div class="form-group"><label>Notes (optional)</label><input type="text" id="song-notes-input" /></div>
     <div class="form-group">
-      <label>Song Parts &amp; Lyrics</label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label>Song Parts &amp; Lyrics</label>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:0.72rem;color:var(--brown-light);">Font size</span>
+          <button onclick="adjustEditorFontSize(-1)" style="width:24px;height:24px;border:1px solid var(--cream-dark);border-radius:5px;background:var(--cream);cursor:pointer;font-size:0.85rem;line-height:1;padding:0;">−</button>
+          <span id="editor-font-size-label" style="font-size:0.78rem;color:var(--brown);min-width:28px;text-align:center;">13</span>
+          <button onclick="adjustEditorFontSize(1)" style="width:24px;height:24px;border:1px solid var(--cream-dark);border-radius:5px;background:var(--cream);cursor:pointer;font-size:0.85rem;line-height:1;padding:0;">+</button>
+        </div>
+      </div>
       <p style="font-size:0.78rem;color:var(--brown-light);margin-bottom:8px;">
-        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord) or <strong style="color:var(--brown-light)">L</strong> (lyric) per line. Use fixed-width spacing to align chords above lyrics. A part may have chord-only or lyric-only lines.
+        Add lines in order. Toggle <strong style="color:var(--green)">C</strong> (chord), <strong style="color:var(--brown-light)">L</strong> (lyric), or <strong style="color:#8a6a2a">N</strong> (note) per line. Use fixed-width spacing to align chords above lyrics.
       </p>
       <div class="part-builder" id="parts-builder"></div>
       <button class="add-part-btn" onclick="addPartRow()">+ Add Part</button>
@@ -978,6 +986,7 @@ let scrolling = false;
 let scrollRAF = null;
 let scrollPos = 0;
 let partRows = [];
+let editorFontSize = 13; // px, default for parts builder line inputs
 
 // ── API ──
 async function api(path, method = 'GET', body = null) {
@@ -2215,6 +2224,13 @@ function insertLineAfter(partId, lineId) {
   renderPartsBuilder();
 }
 
+function adjustEditorFontSize(delta) {
+  editorFontSize = Math.min(16, Math.max(8, editorFontSize + delta));
+  const label = document.getElementById('editor-font-size-label');
+  if (label) label.textContent = editorFontSize;
+  renderPartsBuilder();
+}
+
 function renderPartsBuilder() {
   const el = document.getElementById('parts-builder');
   if (!el) return;
@@ -2237,17 +2253,18 @@ function renderPartsBuilder() {
       ${row.lines.map(line => {
         const isChord = line.type === 'chords';
         const isComment = line.type === 'comment';
+        const fs = `${editorFontSize}px`;
         const inputStyle = isChord
-          ? 'font-family:\'Courier New\',monospace;font-size:0.85rem;background:#f0f8f0;color:var(--green);font-weight:600;padding:7px 9px;border:1px solid #b0d8b0;border-radius:6px;flex:1;'
+          ? `font-family:'Courier New',monospace;font-size:${fs};background:#f0f8f0;color:var(--green);font-weight:600;padding:7px 9px;border:1px solid #b0d8b0;border-radius:6px;flex:1;`
           : isComment
-          ? 'font-family:\'Lora\',serif;font-size:0.85rem;font-style:italic;background:#f8f4ec;color:#8a6a2a;padding:7px 9px;border:1px solid #e0d4b0;border-radius:6px;flex:1;'
-          : 'font-family:\'Courier New\',monospace;font-size:0.85rem;padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;flex:1;';
+          ? `font-family:'Lora',serif;font-size:${fs};font-style:italic;background:#f8f4ec;color:#8a6a2a;padding:7px 9px;border:1px solid #e0d4b0;border-radius:6px;flex:1;`
+          : `font-family:'Courier New',monospace;font-size:${fs};padding:7px 9px;border:1px solid var(--cream-dark);border-radius:6px;flex:1;`;
         const placeholder = isChord ? 'Chord line  (e.g.  Em            G       D)' : isComment ? 'Note / comment (e.g. Play slowly here)' : 'Lyric line  (e.g.  All around me are familiar faces)';
         const btnBg = isChord ? 'var(--green)' : isComment ? '#8a6a2a' : 'var(--brown-light)';
         const btnLabel = isChord ? 'C' : isComment ? 'N' : 'L';
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
           <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle type (C/L/N)" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${btnBg};color:#fff;">${btnLabel}</button>
-          <input type="text" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" />
+          <input type="text" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false" />
           <button onclick="insertLineAfter(${row.id},${line.id})" title="Insert line below" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;background:var(--cream-dark);color:var(--brown-light);">+</button>
           <button class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:5px 8px;" onclick="removeLine(${row.id},${line.id})"><i class="ti ti-x"></i></button>
         </div>`;
@@ -2320,6 +2337,9 @@ function resetSongForm() {
   document.getElementById('song-form-title').textContent = 'Add Song';
   document.getElementById('song-cancel-btn').style.display = 'none';
   document.getElementById('song-delete-btn').style.display = 'none';
+  editorFontSize = 13;
+  const label = document.getElementById('editor-font-size-label');
+  if (label) label.textContent = editorFontSize;
   partRows = [];
   addPartRow();
 }
