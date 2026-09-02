@@ -2264,7 +2264,7 @@ function renderPartsBuilder() {
         const btnLabel = isChord ? 'C' : isComment ? 'N' : 'L';
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
           <button onclick="toggleLineType(${row.id},${line.id})" title="Toggle type (C/L/N)" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:0.7rem;font-weight:700;background:${btnBg};color:#fff;">${btnLabel}</button>
-          <input type="text" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false" />
+          <input type="search" value="${escAttr(line.text)}" placeholder="${placeholder}" oninput="updateLine(${row.id},${line.id},this.value)" style="${inputStyle}" autocorrect="off" autocapitalize="off" autocomplete="off" spellcheck="false" />
           <button onclick="insertLineAfter(${row.id},${line.id})" title="Insert line below" style="flex-shrink:0;width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;background:var(--cream-dark);color:var(--brown-light);">+</button>
           <button class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:5px 8px;" onclick="removeLine(${row.id},${line.id})"><i class="ti ti-x"></i></button>
         </div>`;
