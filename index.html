@@ -75,6 +75,7 @@
     .badge-status-5 { background: #dce8fa; color: #2a5a8a; }
     .badge-status-6 { background: #e8e0f0; color: #5a3a8a; }
     .badge-status-7 { background: #f0e8dc; color: #8a4a1a; font-weight:700; }
+    .badge-status-0 { background: #f5f0fa; color: #8a6aa8; border: 1.5px dashed #b89ecb; }
     .status-chip { display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;padding:4px 10px;border-radius:20px;font-weight:500;cursor:pointer;border:1.5px solid transparent;transition:all .15s; }
     .status-chip.active { border-color: var(--brown); }
     .notes-preview { font-size:0.78rem;color:var(--brown-light);margin-top:3px;font-style:italic; }
@@ -239,6 +240,7 @@
     <div class="section-header">
       <h2>Songs</h2>
       <div style="display:flex;gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="openWishlistModal()" id="wishlist-add-btn"><i class="ti ti-bulb"></i> Wishlist</button>
         <button class="btn btn-secondary btn-sm" onclick="cycleSongNotesMode()" id="notes-mode-btn">Notes: Off</button>
         <button class="btn btn-secondary btn-sm" onclick="toggleSongSort()" id="sort-btn">Sort: Title</button>
       </div>
@@ -263,6 +265,7 @@
           <label>Status</label>
           <select id="detail-status-select" style="font-size:0.9rem;" onchange="updateStatusHelper()">
             <option value="">— not set —</option>
+            <option value="99">99 — Wishlist</option>
             <option value="1">1 — Backlog</option>
             <option value="2">2 — Just Started</option>
             <option value="3">3 — Practicing Pieces</option>
@@ -320,6 +323,21 @@
   <div class="section-header"><h2>Chord Library</h2></div>
   <div class="chord-grid" id="chords-grid">
     <div class="empty" style="grid-column:1/-1;"><i class="ti ti-hand-off"></i><p>No chords yet.</p></div>
+  </div>
+</div>
+
+<!-- Wishlist quick-add modal at document level so it works from the Songs tab header -->
+<div class="modal-overlay" id="wishlist-modal">
+  <div class="modal">
+    <h3>Add to Wishlist</h3>
+    <div class="form-group"><label>Song</label><input type="text" id="wishlist-title" placeholder="Song title" /></div>
+    <div class="form-group"><label>Artist (optional)</label><input type="text" id="wishlist-artist" /></div>
+    <div class="form-group"><label>Note (optional)</label><input type="text" id="wishlist-note" placeholder="Why you want to learn it, who mentioned it, etc." /></div>
+    <div class="form-group"><label>URL (optional)</label><input type="text" id="wishlist-url" placeholder="https://…" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('wishlist-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWishlistSong()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -971,6 +989,7 @@ const STRING_COLORS = { e:'#c0622a', a:'#a0522d', d:'#8b6914', g:'#4a6741', b:'#
 let allSongs = [], allChords = [], allPatterns = [], allParts = [], allExercises = [];
 
 const LEARNING_STATUSES = {
+  99: { label: 'Wishlist',            cls: 'badge-status-0' },
   1: { label: 'Backlog',              cls: 'badge-status-1' },
   2: { label: 'Just Started',         cls: 'badge-status-2' },
   3: { label: 'Practicing Pieces',    cls: 'badge-status-3' },
@@ -1094,6 +1113,34 @@ function clearStatusFilters() {
   activeStatusFilters.clear();
   renderStatusFilterChips();
   renderSongList();
+}
+
+// ── WISHLIST QUICK ADD ──
+function openWishlistModal() {
+  ['wishlist-title','wishlist-artist','wishlist-note','wishlist-url'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('wishlist-modal').classList.add('active');
+  document.getElementById('wishlist-title').focus();
+}
+
+async function saveWishlistSong() {
+  const title = document.getElementById('wishlist-title').value.trim();
+  if (!title) { toast('Song title required'); return; }
+  const payload = {
+    title,
+    artist: document.getElementById('wishlist-artist').value.trim() || null,
+    notes: document.getElementById('wishlist-note').value.trim() || null,
+    source_url: document.getElementById('wishlist-url').value.trim() || null,
+    learning_status: 99,
+    version: 1
+  };
+  try {
+    const [created] = await api('songs', 'POST', payload);
+    allSongs.push({ ...created, strumming_patterns: null });
+    closeModal('wishlist-modal');
+    renderStatusFilterChips();
+    renderSongList();
+    toast('Added to wishlist');
+  } catch(e) { toast('Error saving — ' + e.message); }
 }
 
 function cycleSongNotesMode() {
@@ -1266,6 +1313,7 @@ function renderSongDetail() {
 }
 
 const STATUS_DESCRIPTIONS = {
+  99: 'Just an idea I want to explore — no lyrics/chords captured yet.',
   1: 'On my list to learn but haven\'t started yet.',
   2: 'Starting to get familiar with the song.',
   3: 'Working on individual pieces — chord switches, strumming, or lyrics separately.',
